@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>Ingresar | MedicaApp</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body class="auth-page">
+
+    <main class="auth-container">
+
+        <section class="auth-card">
+
+            <div class="auth-brand">
+                <div class="auth-logo">🩺</div>
+                <h1>MedicaApp</h1>
+                <p>Gestión clínica simple y segura</p>
+            </div>
+
+            <div
+                id="loginView"
+                class="auth-view">
+
+                <h2>Ingresar</h2>
+
+                <label for="loginEmail">
+                    Email
+                </label>
+
+                <input
+                    id="loginEmail"
+                    type="email"
+                    autocomplete="email"
+                    placeholder="medico@ejemplo.com">
+
+                <label for="loginPassword">
+                    Contraseña
+                </label>
+
+                <input
+                    id="loginPassword"
+                    type="password"
+                    autocomplete="current-password"
+                    placeholder="Tu contraseña">
+
+                <div
+                    id="loginMessage"
+                    class="auth-message">
+
+                </div>
+
+                <button
+                    id="loginButton"
+                    class="action-button auth-primary-button">
+
+                    Ingresar
+
+                </button>
+
+                <button
+                    class="auth-link-button"
+                    onclick="mostrarRegistro()">
+
+                    Crear cuenta de médico
+
+                </button>
+
+            </div>
+
+            <div
+                id="registerView"
+                class="auth-view hidden">
+
+                <h2>Crear cuenta</h2>
+
+                <div class="auth-name-grid">
+
+                    <div>
+
+                        <label for="registerNombre">
+                            Nombre
+                        </label>
+
+                        <input
+                            id="registerNombre"
+                            autocomplete="given-name">
+
+                    </div>
+
+                    <div>
+
+                        <label for="registerApellido">
+                            Apellido
+                        </label>
+
+                        <input
+                            id="registerApellido"
+                            autocomplete="family-name">
+
+                    </div>
+
+                </div>
+
+                <label for="registerEmail">
+                    Email
+                </label>
+
+                <input
+                    id="registerEmail"
+                    type="email"
+                    autocomplete="email">
+
+                <label for="registerPassword">
+                    Contraseña
+                </label>
+
+                <input
+                    id="registerPassword"
+                    type="password"
+                    autocomplete="new-password"
+                    minlength="8">
+
+                <label for="registerPasswordRepeat">
+                    Repetir contraseña
+                </label>
+
+                <input
+                    id="registerPasswordRepeat"
+                    type="password"
+                    autocomplete="new-password"
+                    minlength="8">
+
+                <div
+                    id="registerMessage"
+                    class="auth-message">
+
+                </div>
+
+                <button
+                    id="registerButton"
+                    class="action-button auth-primary-button">
+
+                    Crear cuenta
+
+                </button>
+
+                <button
+                    class="auth-link-button"
+                    onclick="mostrarLogin()">
+
+                    Volver al inicio de sesión
+
+                </button>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="config.js"></script>
+
+    <script src="auth.js"></script>
+
+</body>
+
+</html>

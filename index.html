@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MedicaApp</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- HEADER -->
+
+    <header class="topbar">
+
+    <div class="logo">
+            🩺 MedicaApp
+    </div>
+
+    <div class="topbar-right">
+        <div class="today" id="today">
+    </div>
+        <button id="doctorProfileButton" class="doctor-profile-button" type="button">
+            <span id="doctorProfileName">Cargando perfil...</span>
+            <small id="doctorProfileSpecialty"></small>
+        </button>
+        <button id="logoutButton" class="logout-button">Cerrar sesión
+        </button>
+    </div>
+
+    </header>
+
+
+    <!-- BUSCADOR -->
+
+    <section class="searchBar">
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="🔍 Buscar paciente por nombre...">
+
+    </section>
+
+
+    <!-- CONTENIDO -->
+
+    <main class="content">
+
+        <!-- LISTADO -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-title">
+
+                Pacientes
+
+            </div>
+
+            <div
+                id="results"
+                class="results">
+
+            </div>
+
+            <div class="patient-list-footer">
+
+                <button id="togglePatientListButton" class="patient-list-toggle" type="button">
+                    Ver todos los pacientes
+
+                </button>
+            </div>
+
+        </aside>
+
+
+        <!-- PANEL -->
+
+        <section
+            id="patientPanel"
+            class="patientPanel">
+
+            <div class="empty">
+
+                <h2>Bienvenido</h2>
+
+                <br>
+
+                Seleccioná un paciente desde la izquierda.
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- BOTON -->
+
+    <button
+        id="newPatientButton"
+        class="floating-button">
+
+        +
+
+    </button>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="config.js"></script>
+
+<script src="components/search.js"></script>
+
+<script src="components/patient.js"></script>
+
+<script src="components/modal.js"></script>
+
+<script src="components/ui.js"></script>
+
+<script src="database.js"></script>
+
+<script src="app.js"></script>
+
+
+
+</body>
+
+</html>

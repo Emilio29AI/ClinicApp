@@ -2587,6 +2587,194 @@ body{
     }
 }
 
+/* =====================================================
+   FORMATO PARA PDF MÓVIL
+   Replica los estilos de impresión para html2pdf
+===================================================== */
+
+.mobile-pdf-container{
+    width:700px;
+    padding:28px;
+    box-sizing:border-box;
+    background:#FFFFFF;
+    color:#1F2937;
+    font-family:Arial, sans-serif;
+}
+
+.mobile-pdf-container .print-document{
+    width:100%;
+}
+
+.mobile-pdf-container .print-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:24px;
+    padding-bottom:14px;
+    border-bottom:2px solid #3F6F91;
+}
+
+.mobile-pdf-container .print-brand{
+    color:#2F5875;
+    font-size:23px;
+    font-weight:700;
+}
+
+.mobile-pdf-container .print-document-title{
+    margin-top:4px;
+    color:#6F8EA3;
+    font-size:13px;
+}
+
+.mobile-pdf-container .print-professional{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:3px;
+    font-size:11px;
+}
+
+.mobile-pdf-container .print-patient-header{
+    margin-top:16px;
+    padding:14px;
+    border:1px solid #D8E8F2;
+    border-radius:10px;
+    background:#EEF6FB;
+}
+
+.mobile-pdf-container .print-patient-header h1{
+    margin:0 0 8px;
+    font-size:20px;
+}
+
+.mobile-pdf-container .print-patient-summary{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 18px;
+    font-size:11px;
+}
+
+.mobile-pdf-container .print-alerts{
+    margin-top:12px;
+    padding:11px 13px;
+    border:1px solid #E7C9C9;
+    border-radius:9px;
+    background:#FFF4F3;
+    color:#9F2D27;
+}
+
+.mobile-pdf-container .print-alerts p,
+.mobile-pdf-container .print-observations p{
+    margin:5px 0 0;
+    white-space:pre-line;
+    line-height:1.45;
+}
+
+.mobile-pdf-container .print-observations{
+    margin-top:12px;
+    padding:12px 14px;
+    border:1px solid #D8E8F2;
+    border-radius:9px;
+}
+
+.mobile-pdf-container .print-observations h2,
+.mobile-pdf-container .print-history > h2{
+    margin:0 0 8px;
+    color:#2F5875;
+    font-size:15px;
+}
+
+.mobile-pdf-container .print-history{
+    margin-top:18px;
+}
+
+.mobile-pdf-container .print-evolution{
+    margin-bottom:14px;
+    padding:13px;
+    border:1px solid #D8E8F2;
+    border-radius:10px;
+    break-inside:avoid;
+    page-break-inside:avoid;
+}
+
+.mobile-pdf-container .print-evolution-header{
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:10px;
+    padding-bottom:7px;
+    border-bottom:1px solid #D8E8F2;
+}
+
+.mobile-pdf-container .print-evolution-header h3{
+    margin:0;
+    color:#2F5875;
+    font-size:14px;
+}
+
+.mobile-pdf-container .print-evolution-header strong{
+    font-size:12px;
+}
+
+.mobile-pdf-container .print-text-field{
+    margin-top:9px;
+}
+
+.mobile-pdf-container .print-text-field span,
+.mobile-pdf-container .print-measurement span{
+    display:block;
+    margin-bottom:3px;
+    color:#6F8EA3;
+    font-size:9px;
+}
+
+.mobile-pdf-container .print-text-field p{
+    margin:0;
+    white-space:pre-line;
+    line-height:1.4;
+    font-size:11px;
+}
+
+.mobile-pdf-container .print-measurements{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:10px;
+}
+
+.mobile-pdf-container .print-measurement{
+    min-width:92px;
+    padding:7px 9px;
+    border:1px solid #E1EDF4;
+    border-radius:7px;
+    background:#F5F9FC;
+}
+
+.mobile-pdf-container .print-measurement strong{
+    font-size:11px;
+}
+
+.mobile-pdf-container .print-next-control{
+    margin-top:9px;
+    font-size:10px;
+}
+
+.mobile-pdf-container .print-empty{
+    color:#6B7280;
+    font-size:12px;
+}
+
+.mobile-pdf-container .print-footer{
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    margin-top:18px;
+    padding-top:8px;
+    border-top:1px solid #D8E8F2;
+    color:#6B7280;
+    font-size:9px;
+}
+
 .forgot-password-row{
     display:flex;
     justify-content:center;
@@ -3318,7 +3506,7 @@ body:not(.auth-page) .floating-button:hover{
     background:#FFFFFF;
     color:#1F2937;
     font-family:Arial, sans-serif;
-    opacity:.01;
+    opacity:1;
     pointer-events:none;
     z-index:999999;
 }

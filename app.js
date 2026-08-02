@@ -256,21 +256,71 @@ async function mostrarPaciente(p){
     </div>
 
     <div class="clinical-alerts ${p.alertasClinicas ? "has-alerts" : ""}">
-        <span>Alertas clínicas: </span>
-        <strong>${p.alertasClinicas? escaparHTML(p.alertasClinicas):"Sin alertas clínicas registradas."
-        }</strong>
+    <span>Alertas clínicas: </span>
+
+    <strong>
+        ${
+            p.alertasClinicas
+                ? escaparHTML(p.alertasClinicas)
+                : "Sin alertas clínicas registradas."
+        }
+    </strong>
+</div>
+
+<details class="patient-files-details">
+
+    <summary>
+
+        <span>Archivos y estudios</span>
+
+        <span class="patient-files-summary-right">
+
+            <span id="patientFilesCount">
+                Cargando...
+            </span>
+
+            <span class="patient-files-arrow">⌄</span>
+
+        </span>
+
+    </summary>
+
+    <div class="patient-files-content">
+
+        <div class="patient-files-toolbar">
+
+            <button
+                class="secondary-button attach-file-button"
+                type="button"
+                onclick="abrirModalAdjuntarArchivo()">
+
+                + Adjuntar archivo
+
+            </button>
+
+        </div>
+
+        <div id="patientFiles">
+
+            <div class="timeline-empty">
+                Cargando archivos...
+            </div>
+
+        </div>
 
     </div>
 
-    <div class="section">
+</details>
 
-        <h2>Evoluciones</h2>
+<div class="section">
+
+    <h2>Consultas</h2>
 
         <button
             class="action-button"
             id="newEvolutionButton">
 
-            + Nueva evolución
+            + Nueva consulta
 
         </button>
 
@@ -289,6 +339,9 @@ async function mostrarPaciente(p){
 document
 .getElementById("newEvolutionButton")
 .addEventListener("click", abrirModalNuevaEvolucion);
+
+
+await cargarArchivosPaciente();
 
 const consultas = await Database.cargarConsultas(p.id);
 
@@ -1226,7 +1279,7 @@ async function verDetalleConsulta(id){
             type="button"
             onclick="exportarEvolucionPDF('${consulta.id}')">
 
-            Exportar PDF
+            Exportar
 
         </button>
 
@@ -1235,7 +1288,7 @@ async function verDetalleConsulta(id){
         type="button"
         onclick="abrirEdicionEvolucion('${consulta.id}')">
 
-        Editar evolución
+        Editar
 
         </button>
 
@@ -1244,7 +1297,7 @@ async function verDetalleConsulta(id){
         type="button"
         onclick="eliminarEvolucion('${consulta.id}')">
 
-        Eliminar evolución
+        Eliminar consulta
 
         </button>
 
@@ -1551,6 +1604,201 @@ async function exportarEvolucionPDF(id){
 
 }
 
+async function cargarArchivosPaciente(){
+
+    if(!pacienteActual) return;
+
+    const contenedor =
+        document.getElementById("patientFiles");
+
+    if(!contenedor) return;
+
+    contenedor.innerHTML = `
+        <div class="timeline-empty">
+            Cargando archivos...
+        </div>
+    `;
+
+    try{
+
+        const archivos =
+            await Database.cargarArchivos(
+                pacienteActual.id
+            );
+
+        const contador =
+            document.getElementById("patientFilesCount");
+
+        if(contador){contador.textContent =archivos.length === 1
+            ? "1 archivo"
+            : `${archivos.length} archivos`;
+        }
+
+        if(archivos.length === 0){
+
+            const contador =
+            document.getElementById("patientFilesCount");
+
+            if(contador){
+                contador.textContent = "0 archivos";
+            }
+            contenedor.innerHTML = `
+            <div class="timeline-empty">
+            Todavía no hay archivos adjuntos.
+            </div>
+            `;
+        return;
+        }
+
+        
+
+        contenedor.innerHTML =
+            archivos.map(archivo => `
+
+                <article class="patient-file-card">
+
+                    <div class="patient-file-icon">
+                        ${obtenerIconoArchivo(archivo.tipo)}
+                    </div>
+
+                    <div class="patient-file-info">
+
+                        <strong>
+                            ${escaparHTML(archivo.nombre)}
+                        </strong>
+
+                        ${
+                            archivo.descripcion
+                                ? `
+                                    <p>
+                                        ${escaparHTML(
+                                            archivo.descripcion
+                                        )}
+                                    </p>
+                                `
+                                : ""
+                        }
+
+                        <span>
+                            ${formatearFecha(archivo.created_at)}
+                        </span>
+
+                    </div>
+
+                    <div class="patient-file-actions">
+
+                        <button
+                            class="secondary-button"
+                            type="button"
+                            onclick="abrirArchivoPaciente('${archivo.url}')">
+
+                            Ver
+
+                        </button>
+
+                        <button
+                            class="danger-button"
+                            type="button"
+                            onclick="eliminarArchivoPaciente(
+                                '${archivo.id}',
+                                '${archivo.url}'
+                            )">
+
+                            Eliminar
+
+                        </button>
+
+                    </div>
+
+                </article>
+
+            `).join("");
+
+    }catch(error){
+
+        console.error(
+            "Error al cargar archivos:",
+            error
+        );
+
+        contenedor.innerHTML = `
+            <div class="timeline-empty">
+                No se pudieron cargar los archivos.
+            </div>
+        `;
+    }
+}
+
+
+function obtenerIconoArchivo(tipo){
+
+    if(tipo === "application/pdf"){
+        return "PDF";
+    }
+
+    if(tipo?.startsWith("image/")){
+        return "IMG";
+    }
+
+    return "DOC";
+}
+
+
+async function abrirArchivoPaciente(ruta){
+
+    try{
+
+        const url =
+            await Database.crearURLArchivo(ruta);
+
+        window.open(
+            url,
+            "_blank",
+            "noopener,noreferrer"
+        );
+
+    }catch(error){
+
+        console.error(
+            "Error al abrir archivo:",
+            error
+        );
+
+        alert("No se pudo abrir el archivo.");
+    }
+}
+
+
+async function eliminarArchivoPaciente(id, ruta){
+
+    const confirmar = window.confirm(
+        "¿Eliminar este archivo?\n\nEsta acción no se puede deshacer."
+    );
+
+    if(!confirmar) return;
+
+    try{
+
+        await Database.eliminarArchivo(
+            id,
+            ruta
+        );
+
+        await cargarArchivosPaciente();
+
+    }catch(error){
+
+        console.error(
+            "Error al eliminar archivo:",
+            error
+        );
+
+        alert(
+            "No se pudo eliminar el archivo: " +
+            (error.message || "Error desconocido")
+        );
+    }
+}
 
 
 // ----------------------------

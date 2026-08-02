@@ -2633,3 +2633,487 @@ body{
 .auth-secondary-link:hover{
     text-decoration:underline;
 }
+
+.attachment-modal{
+    width:min(560px, calc(100vw - 32px));
+}
+
+.form-help{
+    display:block;
+    margin-top:6px;
+    color:#718391;
+    font-size:12px;
+}
+
+.form-message{
+    min-height:20px;
+    margin:10px 0 0;
+    color:#B33A32;
+    font-size:13px;
+}
+
+#guardarArchivoButton:disabled{
+    opacity:.65;
+    cursor:not-allowed;
+}
+
+/* =====================================================
+   ARCHIVOS Y ESTUDIOS
+===================================================== */
+
+.attachments-section-header{
+    margin-top:20px;
+}
+
+#patientFiles{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:24px;
+}
+
+.patient-file-card{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:13px 14px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+}
+
+.patient-file-icon{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:44px;
+    height:44px;
+    border-radius:10px;
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+    font-size:11px;
+    font-weight:700;
+}
+
+.patient-file-info{
+    flex:1;
+    min-width:0;
+}
+
+.patient-file-info strong{
+    display:block;
+    overflow:hidden;
+    color:#2F4352;
+    font-size:14px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.patient-file-info p{
+    margin:4px 0;
+    color:#60717D;
+    font-size:13px;
+    line-height:1.4;
+}
+
+.patient-file-info span{
+    color:#82919C;
+    font-size:11px;
+}
+
+.patient-file-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+@media (max-width:650px){
+
+    .patient-file-card{
+        align-items:flex-start;
+        flex-wrap:wrap;
+    }
+
+    .patient-file-info{
+        width:calc(100% - 60px);
+    }
+
+    .patient-file-actions{
+        width:100%;
+        justify-content:flex-end;
+    }
+}
+
+.attach-file-button{
+    border:1px solid var(--clinic-blue-border);
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+}
+
+.attach-file-button:hover{
+    border-color:#BCD4E3;
+    background:#E4F1F8;
+    color:var(--clinic-blue-dark);
+}
+
+html{
+    overflow-y:scroll;
+    scrollbar-gutter:stable;
+}
+
+/* =====================================================
+   MODAL ADJUNTAR ARCHIVO
+===================================================== */
+
+#modalOverlay .attachment-modal{
+    width:min(620px, calc(100vw - 32px));
+    max-height:calc(100vh - 40px);
+    overflow:hidden;
+    border-radius:16px;
+    background:#FFFFFF;
+}
+
+/* Encabezado */
+
+#modalOverlay .attachment-modal .patient-form-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    padding:22px 24px 18px;
+    border-bottom:1px solid var(--clinic-blue-border);
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+}
+
+#modalOverlay .attachment-modal .patient-form-header h2{
+    margin:0;
+    color:var(--clinic-blue-dark);
+    font-size:21px;
+    line-height:1.25;
+}
+
+#modalOverlay .attachment-modal .patient-form-header p{
+    margin:6px 0 0;
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+}
+
+#modalOverlay .attachment-modal .modal-close-button{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    margin:0;
+    padding:0;
+    border:0;
+    border-radius:50%;
+    background:#FFFFFF;
+    color:#425B6C;
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+}
+
+#modalOverlay .attachment-modal .modal-close-button:hover{
+    background:#E7F1F7;
+    color:var(--clinic-blue-dark);
+}
+
+/* Cuerpo */
+
+#modalOverlay .attachment-modal .patient-form-body{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    padding:22px 24px;
+    background:var(--clinic-blue-soft-2);
+}
+
+#modalOverlay .attachment-modal .form-group{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
+    width:100%;
+    margin:0;
+}
+
+#modalOverlay .attachment-modal .form-group label{
+    display:block;
+    width:100%;
+    margin:0;
+    color:#344D5E;
+    font-size:13px;
+    font-weight:700;
+}
+
+/* Selector de archivo */
+
+#modalOverlay .attachment-modal input[type="file"]{
+    display:block;
+    width:100%;
+    box-sizing:border-box;
+    padding:8px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:10px;
+    background:#FFFFFF;
+    color:#516572;
+    font-size:13px;
+    cursor:pointer;
+}
+
+#modalOverlay .attachment-modal input[type="file"]::file-selector-button{
+    margin-right:12px;
+    padding:9px 13px;
+    border:0;
+    border-radius:7px;
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+#modalOverlay .attachment-modal input[type="file"]::file-selector-button:hover{
+    background:#DCECF5;
+}
+
+/* Descripción */
+
+#modalOverlay .attachment-modal textarea{
+    display:block;
+    width:100%;
+    min-height:96px;
+    box-sizing:border-box;
+    margin:0;
+    padding:12px 14px;
+    resize:vertical;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:10px;
+    outline:none;
+    background:#FFFFFF;
+    color:#263D4C;
+    font:inherit;
+    line-height:1.45;
+}
+
+#modalOverlay .attachment-modal textarea:focus,
+#modalOverlay .attachment-modal input[type="file"]:focus{
+    border-color:var(--clinic-blue);
+    box-shadow:0 0 0 3px rgba(63, 111, 145, .12);
+}
+
+#modalOverlay .attachment-modal .form-help{
+    margin:0;
+    color:#718694;
+    font-size:12px;
+    line-height:1.4;
+}
+
+#modalOverlay .attachment-modal .form-message{
+    margin:0;
+    min-height:0;
+    color:#B33A32;
+    font-size:13px;
+}
+
+/* Botones */
+
+#modalOverlay .attachment-modal .modal-buttons{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    position:static;
+    padding:16px 24px;
+    border-top:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+}
+
+#modalOverlay .attachment-modal .modal-buttons button{
+    min-height:40px;
+    padding:9px 17px;
+}
+
+/* Celular */
+
+@media (max-width:650px){
+
+    #modalOverlay .attachment-modal{
+        width:calc(100vw - 20px);
+    }
+
+    #modalOverlay .attachment-modal .patient-form-header,
+    #modalOverlay .attachment-modal .patient-form-body,
+    #modalOverlay .attachment-modal .modal-buttons{
+        padding-left:16px;
+        padding-right:16px;
+    }
+
+    #modalOverlay .attachment-modal .modal-buttons{
+        flex-direction:column-reverse;
+    }
+
+    #modalOverlay .attachment-modal .modal-buttons button{
+        width:100%;
+    }
+}
+
+/* =====================================================
+   ARCHIVOS DESPLEGABLES
+===================================================== */
+
+.patient-files-details{
+    margin:18px 0 24px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+    overflow:hidden;
+}
+
+.patient-files-details summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:16px 14px;
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+    font-size:18px;
+    font-weight:700;
+    cursor:pointer;
+    list-style:none;
+    user-select:none;
+}
+
+.patient-files-details summary::-webkit-details-marker{
+    display:none;
+}
+
+.patient-files-summary-right{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+    font-weight:600;
+}
+
+.patient-files-arrow{
+    display:inline-block;
+    font-size:18px;
+    transition:transform .2s ease;
+}
+
+.patient-files-details[open] .patient-files-arrow{
+    transform:rotate(180deg);
+}
+
+.patient-files-content{
+    padding:12px;
+    background:#F8FBFD;
+}
+
+.patient-files-toolbar{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom:12px;
+}
+
+.patient-files-content #patientFiles{
+    margin-bottom:0;
+}
+
+.evolution-card{
+    transition:
+        background-color .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        transform .18s ease;
+}
+
+.evolution-card:hover{
+    background:var(--clinic-blue-soft-2);
+    border-color:var(--clinic-blue-border);
+    box-shadow:0 6px 18px rgba(47, 88, 117, .08);
+    transform:translateY(-1px);
+}
+
+/* =====================================================
+   CARD DE CONSULTA MÁS COMPACTA
+===================================================== */
+
+.evolution-card{
+    position:relative;
+    padding:16px 18px;
+}
+
+.evolution-header{
+    align-items:flex-start;
+    margin-bottom:0;
+}
+
+.evolution-main{
+    display:grid;
+    grid-template-columns:220px minmax(320px, 420px);
+    justify-content:start;
+    align-items:start;
+    gap:42px;
+
+    margin-top:-42px;
+    padding-right:150px;
+}
+
+.evolution-primary{
+    padding-top:42px;
+}
+
+.evolution-diagnosis{
+    min-width:0;
+    margin:0;
+}
+
+.evolution-diagnosis strong{
+    display:block;
+    line-height:1.35;
+    word-break:break-word;
+}
+
+.evolution-metrics{
+    margin-top:14px;
+    padding-top:14px;
+}
+
+.evolution-next-control{
+    margin-top:12px;
+}
+
+.evolution-detail-button{
+    position:absolute;
+    top:16px;
+    right:16px;
+}
+
+@media (max-width:900px){
+
+    .evolution-main{
+        grid-template-columns:1fr;
+        gap:14px;
+        margin-top:12px;
+        padding-right:0;
+    }
+
+    .evolution-primary{
+        padding-top:0;
+    }
+
+    .evolution-detail-button{
+        position:static;
+    }
+}

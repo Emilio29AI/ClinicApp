@@ -527,10 +527,123 @@ async eliminarConsulta(id) {
     }
 
     return true;
+},
+
+async subirArchivo(pacienteId, archivo, descripcion = ""){
+
+    const {
+        data: { user },
+        error: userError
+    } = await supabaseClient.auth.getUser();
+
+    if(userError || !user){
+        throw new Error("No se pudo identificar al médico.");
+    }
+
+    const nombreSeguro = archivo.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]/g, "-");
+
+    const ruta =
+        `${user.id}/${pacienteId}/${crypto.randomUUID()}-${nombreSeguro}`;
+
+    const { error: uploadError } =
+        await supabaseClient.storage
+            .from("estudios")
+            .upload(ruta, archivo, {
+                contentType: archivo.type,
+                upsert: false
+            });
+
+    if(uploadError){
+        throw uploadError;
+    }
+
+    const { data, error: insertError } =
+        await supabaseClient
+            .from("archivos")
+            .insert({
+                paciente_id: pacienteId,
+                consulta_id: null,
+                nombre: archivo.name,
+                tipo: archivo.type || "application/octet-stream",
+                url: ruta,
+                descripcion: descripcion.trim() || null
+            })
+            .select()
+            .single();
+
+    if(insertError){
+
+        await supabaseClient.storage
+            .from("estudios")
+            .remove([ruta]);
+
+        throw insertError;
+    }
+
+    return data;
+},
+
+
+async cargarArchivos(pacienteId){
+
+    const { data, error } =
+        await supabaseClient
+            .from("archivos")
+            .select("*")
+            .eq("paciente_id", pacienteId)
+            .order("created_at", {
+                ascending: false
+            });
+
+    if(error){
+        throw error;
+    }
+
+    return data || [];
+},
+
+
+async crearURLArchivo(ruta){
+
+    const { data, error } =
+        await supabaseClient.storage
+            .from("estudios")
+            .createSignedUrl(ruta, 300);
+
+    if(error){
+        throw error;
+    }
+
+    return data.signedUrl;
+},
+
+
+async eliminarArchivo(id, ruta){
+
+    const { error: storageError } =
+        await supabaseClient.storage
+            .from("estudios")
+            .remove([ruta]);
+
+    if(storageError){
+        throw storageError;
+    }
+
+    const { error: databaseError } =
+        await supabaseClient
+            .from("archivos")
+            .delete()
+            .eq("id", id);
+
+    if(databaseError){
+        throw databaseError;
+    }
+
+    return true;
 }
     
 
-}
-
-
-;
+};

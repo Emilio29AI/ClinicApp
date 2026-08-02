@@ -316,7 +316,7 @@ function abrirModalNuevaEvolucion(){
             <div class="evolution-modal-header">
 
                 <div>
-                    <h2>Nueva evolución</h2>
+                    <h2>Nueva consulta</h2>
                     <p>${escaparHTML(pacienteActual.nombreCompleto)}</p>
                 </div>
 
@@ -499,7 +499,7 @@ function abrirModalNuevaEvolucion(){
                     id="guardarEvolucionButton"
                     onclick="guardarEvolucion()">
 
-                    Guardar evolución
+                    Guardar consulta
 
                 </button>
 
@@ -1207,7 +1207,7 @@ function abrirFichaCompletaPaciente(){
                     type="button"
                     onclick="exportarFichaPDF()">
 
-                    Exportar PDF
+                    Exportar Historia Clinica
 
                 </button>
 
@@ -1637,4 +1637,195 @@ function crearDatoResumenPDF(etiqueta, valor){
 
     `;
 
+}
+
+function abrirModalAdjuntarArchivo(){
+
+    if(!pacienteActual){
+        alert("Primero seleccioná un paciente.");
+        return;
+    }
+
+    if(document.getElementById("modalOverlay")) return;
+
+const overlay = document.createElement("div");
+
+overlay.id = "modalOverlay";
+overlay.className = "modal-overlay";
+
+    overlay.innerHTML = `
+
+        <div class="modal attachment-modal">
+
+            <div class="patient-form-header">
+
+                <div>
+                    <h2>Adjuntar archivo o estudio</h2>
+
+                    <p>
+                        ${escaparHTML(pacienteActual.nombreCompleto)}
+                    </p>
+                </div>
+
+                <button
+                    class="modal-close-button"
+                    type="button"
+                    onclick="cerrarModal()"
+                >
+                    ×
+                </button>
+
+            </div>
+
+            <div class="patient-form-body">
+
+                <div class="form-group">
+
+                    <label for="archivoEstudio">
+                        Seleccionar archivo
+                    </label>
+
+                    <input
+                        id="archivoEstudio"
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                    >
+
+                    <small class="form-help">
+                        PDF, JPG, PNG o WEBP. Máximo 15 MB.
+                    </small>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="descripcionArchivo">
+                        Descripción
+                    </label>
+
+                    <textarea
+                        id="descripcionArchivo"
+                        rows="3"
+                        placeholder="Ejemplo: Análisis de sangre, control anual"
+                    ></textarea>
+
+                </div>
+
+                <p
+                    id="archivoMensaje"
+                    class="form-message"
+                ></p>
+
+            </div>
+
+            <div class="modal-buttons">
+
+                <button
+                    class="secondary-button"
+                    type="button"
+                    onclick="cerrarModal()"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    id="guardarArchivoButton"
+                    class="action-button"
+                    type="button"
+                    onclick="guardarArchivoPaciente()"
+                >
+                    Adjuntar archivo
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+    document.body.appendChild(overlay);
+}
+
+async function guardarArchivoPaciente(){
+
+    const input =
+        document.getElementById("archivoEstudio");
+
+    const descripcion =
+        document
+            .getElementById("descripcionArchivo")
+            .value
+            .trim();
+
+    const mensaje =
+        document.getElementById("archivoMensaje");
+
+    const boton =
+        document.getElementById("guardarArchivoButton");
+
+    const archivo = input.files[0];
+
+    mensaje.textContent = "";
+
+    if(!archivo){
+
+        mensaje.textContent =
+            "Seleccioná un archivo.";
+
+        return;
+    }
+
+    const tiposPermitidos = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+    ];
+
+    if(!tiposPermitidos.includes(archivo.type)){
+
+        mensaje.textContent =
+            "El archivo debe ser PDF, JPG, PNG o WEBP.";
+
+        return;
+    }
+
+    const limite = 15 * 1024 * 1024;
+
+    if(archivo.size > limite){
+
+        mensaje.textContent =
+            "El archivo supera el límite de 15 MB.";
+
+        return;
+    }
+
+    try{
+
+        boton.disabled = true;
+        boton.textContent = "Subiendo...";
+
+        await Database.subirArchivo(
+            pacienteActual.id,
+            archivo,
+            descripcion
+        );
+
+        cerrarModal();
+
+        await cargarArchivosPaciente();
+
+    }catch(error){
+
+        console.error(
+            "Error al adjuntar archivo:",
+            error
+        );
+
+        mensaje.textContent =
+            "No se pudo adjuntar el archivo: " +
+            (error.message || "Error desconocido");
+
+        boton.disabled = false;
+        boton.textContent = "Adjuntar archivo";
+    }
 }

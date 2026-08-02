@@ -1832,7 +1832,17 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
     document.body.appendChild(contenedor);
 
-    const opciones = {
+    const scrollAnterior = window.scrollY;
+
+    window.scrollTo(0, 0);
+
+    await new Promise(resolve => {
+    requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+    });
+});
+
+const opciones = {
         margin: [8, 8, 8, 8],
         filename: nombreArchivo,
         image: {
@@ -1873,6 +1883,8 @@ async function descargarPDFMovil(printArea, nombreArchivo){
     }finally{
 
         contenedor.remove();
+
+        window.scrollTo(0, scrollAnterior);
 
     }
 

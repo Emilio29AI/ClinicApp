@@ -1672,6 +1672,71 @@ async function exportarEvolucionPDF(id, numeroConsulta){
 
     `;
 
+    document.body.appendChild(printArea);
+
+const nombrePaciente =
+    pacienteActual.nombreCompleto
+        .replace(/[\\/:*?"<>|]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+const nombreArchivo =
+    `${nombrePaciente} - Consulta ${numeroConsulta}.pdf`;
+
+if(usarExportacionMovilPDF()){
+
+    try{
+
+        await descargarPDFMovil(
+            printArea,
+            nombreArchivo
+        );
+
+    }finally{
+
+        if(printArea.isConnected){
+            printArea.remove();
+        }
+
+    }
+
+    return;
+}
+
+/*
+ * Exportación normal de escritorio.
+ */
+const tituloAnterior = document.title;
+
+document.title =
+    `${nombrePaciente} - Consulta ${numeroConsulta}`;
+
+try{
+
+    await new Promise(resolve => {
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+        });
+
+    });
+
+    window.print();
+
+}finally{
+
+    document.title = tituloAnterior;
+
+    setTimeout(() => {
+
+        if(printArea.isConnected){
+            printArea.remove();
+        }
+
+    }, 1000);
+
+}
+
     const tituloOriginal = document.title;
 
     const nombrePacientePDF =

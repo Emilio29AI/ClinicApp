@@ -1833,32 +1833,6 @@ function usarExportacionMovilPDF(){
 
 async function descargarPDFMovil(printArea, nombreArchivo){
 
-    if(typeof html2pdf === "undefined"){
-
-        alert(
-            "No se pudo cargar el generador de PDF. Verificá la conexión a Internet."
-        );
-
-        return;
-    }
-
-    const contenedor = document.createElement("div");
-
-    contenedor.className = "mobile-pdf-container";
-    contenedor.innerHTML = printArea.innerHTML;
-
-    document.body.appendChild(contenedor);
-
-    const scrollAnterior = window.scrollY;
-
-    window.scrollTo(0, 0);
-
-    await new Promise(resolve => {
-    requestAnimationFrame(() => {
-        requestAnimationFrame(resolve);
-    });
-});
-
 const opciones = {
         margin: [8, 8, 8, 8],
         filename: nombreArchivo,

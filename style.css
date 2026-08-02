@@ -3310,15 +3310,17 @@ body:not(.auth-page) .floating-button:hover{
     position:absolute;
     top:0;
     left:0;
-    width:794px;
-    min-height:1123px;
-    padding:38px;
+    width:700px;
+    min-height:990px;
+    padding:28px;
     box-sizing:border-box;
+    overflow:visible;
     background:#FFFFFF;
     color:#1F2937;
     font-family:Arial, sans-serif;
-    z-index:999999;
+    opacity:.01;
     pointer-events:none;
+    z-index:999999;
 }
 
 .mobile-pdf-container .print-document{
@@ -3337,4 +3339,20 @@ body:not(.auth-page) .floating-button:hover{
 .mobile-pdf-container .print-evolution,
 .mobile-pdf-container .print-footer{
     visibility:visible;
+}
+
+.mobile-pdf-container,
+.mobile-pdf-container *{
+    visibility:visible !important;
+}
+
+.mobile-pdf-container .print-document{
+    display:block !important;
+    width:100%;
+    background:#FFFFFF;
+}
+
+.mobile-pdf-container .print-evolution{
+    break-inside:auto;
+    page-break-inside:auto;
 }

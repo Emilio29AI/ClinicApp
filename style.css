@@ -531,8 +531,8 @@ body{
 
 .evolution-main{
     display:grid;
-    grid-template-columns:200px minmax(420px, 1fr);
-    gap:24px;
+    grid-template-columns:100px minmax(500px, 1fr);
+    gap:10px;
 }
 
 .evolution-primary,
@@ -3069,10 +3069,10 @@ html{
 
 .evolution-main{
     display:grid;
-    grid-template-columns:220px minmax(320px, 420px);
+    grid-template-columns:160px minmax(320px, 520px);
     justify-content:start;
     align-items:start;
-    gap:42px;
+    gap:45px;
 
     margin-top:-42px;
     padding-right:150px;

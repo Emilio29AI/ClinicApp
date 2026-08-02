@@ -1614,9 +1614,7 @@ function crearCampoPDF(etiqueta, valor){
 
             <span>${etiqueta}</span>
 
-            <p>
-                ${escaparHTML(String(valor))}
-            </p>
+            <p>${escaparHTML(String(valor))}</p>
 
         </div>
 

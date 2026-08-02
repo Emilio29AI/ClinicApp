@@ -1239,12 +1239,7 @@ async function verDetalleConsulta(id, numeroConsulta){
 
                         <span>Motivo de consulta</span>
 
-                        <p>
-                            ${consulta.motivo
-                                ? escaparHTML(consulta.motivo)
-                                : "-"
-                            }
-                        </p>
+                        <p>${consulta.motivo ? escaparHTML(consulta.motivo) : "-"}</p>
 
                     </div>
 
@@ -1260,12 +1255,7 @@ async function verDetalleConsulta(id, numeroConsulta){
 
                     <span>Evolución clínica</span>
 
-                    <p>
-                        ${consulta.evolucion
-                            ? escaparHTML(consulta.evolucion)
-                            : "-"
-                        }
-                    </p>
+                   <p>${consulta.evolucion ? escaparHTML(consulta.evolucion) : "-"}</p>
 
                 </div>
 
@@ -1273,12 +1263,7 @@ async function verDetalleConsulta(id, numeroConsulta){
 
                     <span>Diagnóstico o impresión clínica</span>
 
-                    <p>
-                        ${consulta.diagnostico
-                            ? escaparHTML(consulta.diagnostico)
-                            : "-"
-                        }
-                    </p>
+                   <p>${consulta.diagnostico ? escaparHTML(consulta.diagnostico) : "-"}</p>
 
                 </div>
 
@@ -1286,12 +1271,7 @@ async function verDetalleConsulta(id, numeroConsulta){
 
                     <span>Conducta y plan</span>
 
-                    <p>
-                        ${consulta.conducta
-                            ? escaparHTML(consulta.conducta)
-                            : "-"
-                        }
-                    </p>
+                    <p>${consulta.conducta ? escaparHTML(consulta.conducta) : "-"}</p>
 
                 </div>
 

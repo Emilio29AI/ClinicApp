@@ -19,6 +19,7 @@ let pacienteActual = null;
 let perfilMedicoActual = null;
 let mostrandoTodosPacientes = false;
 let graficoEvolucionActual = null;
+let metricaGraficoActual = "peso";
 
 
 
@@ -378,6 +379,15 @@ async function mostrarPaciente(p){
     data-chart-metric="temperatura">
 
     Temperatura
+
+</button>
+
+<button
+    class="chart-export-button"
+    type="button"
+    onclick="exportarGraficoEvolucion()">
+
+    Descargar gráfico
 
 </button>
 
@@ -1986,14 +1996,14 @@ function configurarGraficosEvolucion(consultas){
         return;
     }
 
-    let metricaActual = "peso";
+    metricaGraficoActual = "peso";
 
     botones.forEach(boton => {
 
         boton.addEventListener("click", () => {
 
-            metricaActual =
-                boton.dataset.chartMetric;
+            metricaGraficoActual =
+    boton.dataset.chartMetric;
 
             botones.forEach(item => {
                 item.classList.toggle(
@@ -2004,7 +2014,7 @@ function configurarGraficosEvolucion(consultas){
 
             renderizarGraficoEvolucion(
                 consultas,
-                metricaActual
+                metricaGraficoActual
             );
 
         });
@@ -2019,7 +2029,7 @@ function configurarGraficosEvolucion(consultas){
 
                 renderizarGraficoEvolucion(
                     consultas,
-                    metricaActual
+                    metricaGraficoActual
                 );
 
             }
@@ -2548,6 +2558,60 @@ function calcularLimitesGrafico(
         max:limiteMaximo
     };
 
+}
+
+function exportarGraficoEvolucion(){
+
+    if(!graficoEvolucionActual){
+
+        alert("Primero abrí un gráfico con datos.");
+
+        return;
+    }
+
+    if(!pacienteActual){
+
+        alert("No hay un paciente seleccionado.");
+
+        return;
+    }
+
+    const nombresMetricas = {
+        peso:"Peso",
+        imc:"IMC",
+        presion:"Presion arterial",
+        frecuencia_cardiaca:"Frecuencia cardiaca",
+        saturacion:"Saturacion",
+        temperatura:"Temperatura"
+    };
+
+    const nombrePaciente =
+        pacienteActual.nombreCompleto
+            .replace(/[\\/:*?"<>|]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+    const nombreMetrica =
+        nombresMetricas[metricaGraficoActual] ||
+        "Evolucion";
+
+    const enlace =
+        document.createElement("a");
+
+    enlace.href =
+        graficoEvolucionActual.toBase64Image(
+            "image/png",
+            1
+        );
+
+    enlace.download =
+        `${nombrePaciente} - ${nombreMetrica}.png`;
+
+    document.body.appendChild(enlace);
+
+    enlace.click();
+
+    enlace.remove();
 }
 
 

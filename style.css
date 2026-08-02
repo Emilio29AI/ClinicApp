@@ -531,8 +531,8 @@ body{
 
 .evolution-main{
     display:grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:12px 18px;
+    grid-template-columns:200px minmax(420px, 1fr);
+    gap:24px;
 }
 
 .evolution-primary,
@@ -3276,8 +3276,8 @@ body:not(.auth-page) .evolution-card{
 }
 
 body:not(.auth-page) .evolution-card:hover{
-    border-color:#BDD8E7;
-    background:#F2F9FC;
+    border-color:#435b68;
+    background:#d2e2e9;
     box-shadow:0 8px 22px rgba(47,88,117,.08);
 }
 
@@ -3472,6 +3472,31 @@ body:not(.auth-page) .floating-button:hover{
 
     #patientEvolutionChart{
         height:240px !important;
+    }
+
+}
+
+.chart-export-button{
+    margin-left:auto;
+    padding:8px 15px;
+    border:1px solid var(--clinic-blue);
+    border-radius:8px;
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.chart-export-button:hover{
+    background:#DCECF5;
+}
+
+@media (max-width:650px){
+
+    .chart-export-button{
+        width:100%;
+        margin-left:0;
     }
 
 }

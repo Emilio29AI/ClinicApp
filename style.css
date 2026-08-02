@@ -3307,16 +3307,18 @@ body:not(.auth-page) .floating-button:hover{
 ===================================================== */
 
 .mobile-pdf-container{
-    position:fixed;
+    position:absolute;
     top:0;
-    left:-10000px;
+    left:0;
     width:794px;
+    min-height:1123px;
     padding:38px;
     box-sizing:border-box;
     background:#FFFFFF;
     color:#1F2937;
     font-family:Arial, sans-serif;
-    z-index:-1;
+    z-index:999999;
+    pointer-events:none;
 }
 
 .mobile-pdf-container .print-document{

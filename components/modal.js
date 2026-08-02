@@ -1569,19 +1569,10 @@ async function exportarFichaPDF(){
     return;
 }
 
-document.body.appendChild(printArea);
 
-window.addEventListener(
-    "afterprint",
-    () => printArea.remove(),
-    { once:true }
-);
+/* EXPORTACIÓN EN PC */
 
-requestAnimationFrame(() => {
-    window.print();
-});
-
-    const tituloOriginal = document.title;
+const tituloOriginal = document.title;
 
 const nombrePacientePDF =
     pacienteActual.nombreCompleto
@@ -1592,11 +1583,23 @@ const nombrePacientePDF =
 document.title =
     `Historia clínica - ${nombrePacientePDF}`;
 
-    requestAnimationFrame(() => {
+document.body.appendChild(printArea);
 
-        window.print();
+window.addEventListener(
+    "afterprint",
+    () => {
 
-    });
+        printArea.remove();
+
+        document.title = tituloOriginal;
+
+    },
+    { once:true }
+);
+
+requestAnimationFrame(() => {
+    window.print();
+});
 
 }
 

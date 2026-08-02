@@ -1993,12 +1993,13 @@ async function descargarPDFMovil(printArea, nombreArchivo){
     try{
 
         contenedor = document.createElement("div");
-        contenedor.className = "mobile-pdf-container";
+        contenedor.className = "mobile-pdf-wrapper";
 
         const contenidoClonado =
             printArea.cloneNode(true);
 
         contenidoClonado.removeAttribute("id");
+        contenidoClonado.classList.add("mobile-pdf-container");
 
         /*
          * Primero se agrega al documento.
@@ -2100,7 +2101,19 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
         contenidoClonado.style.setProperty(
             "width",
-            "100%",
+            "700px",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "max-width",
+            "700px",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "box-sizing",
+            "border-box",
             "important"
         );
 

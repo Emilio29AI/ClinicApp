@@ -192,10 +192,22 @@ async function mostrarPaciente(p){
         <div>
             <h1>${p.nombreCompleto}</h1>
 
-            <div class="patient-subtitle">
+            <div class="patient-summary">
+
+            <span>
                 ${p.obraSocial || "Sin obra social"}
                 ${p.nroAfiliado ? ` · Afiliado: ${p.nroAfiliado}` : ""}
-            </div>
+            </span>
+
+            ${p.edad !== null && p.edad !== undefined? `<span>${p.edad} años</span>`: ""}
+
+            ${p.dni? `<span>DNI ${escaparHTML(p.dni)}</span>`: ""}
+
+            ${p.telefono? `<span>${escaparHTML(p.telefono)}</span>`: ""}
+
+            ${p.email? `<span>${escaparHTML(p.email)}</span>`: ""}
+
+</div>
         </div>
 
         <div class="patient-actions">
@@ -228,47 +240,12 @@ async function mostrarPaciente(p){
 
     </div>
 
-    <div class="patient-grid">
-
-        <div class="info-card">
-            <span>Edad</span>
-            <strong>${p.edad !== null && p.edad !== undefined ? `${p.edad} años` : "-"}</strong>
-        </div>
-
-        <div class="info-card">
-            <span>Fecha de nacimiento</span>
-            <strong>${formatearFecha(p.fechaNacimiento)}</strong>
-        </div>
-
-        <div class="info-card">
-            <span>DNI</span>
-            <strong>${p.dni || "-"}</strong>
-        </div>
-
-        <div class="info-card">
-            <span>Sexo</span>
-            <strong>${p.sexo || "-"}</strong>
-        </div>
-
-        <div class="info-card">
-            <span>Teléfono</span>
-            <strong>${p.telefono || "-"}</strong>
-        </div>
-
-        <div class="info-card">
-            <span>Email</span>
-            <strong>${p.email || "-"}</strong>
-        </div>
-
-    </div>
-
     <div class="clinical-alerts ${p.alertasClinicas ? "has-alerts" : ""}">
         <span>Alertas clínicas: </span>
         <strong>${p.alertasClinicas? escaparHTML(p.alertasClinicas):"Sin alertas clínicas registradas."
-        }
-    </strong>
+        }</strong>
 
-</div>
+    </div>
 
     <div class="section">
 

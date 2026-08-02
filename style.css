@@ -1673,3 +1673,205 @@ body{
 .patient-list-toggle[hidden]{
     display:none;
 }
+
+/* =====================================================
+   COLOR SUAVE Y JERARQUÍA VISUAL
+===================================================== */
+
+:root{
+    --clinic-blue:#3F6F91;
+    --clinic-blue-dark:#2F5875;
+    --clinic-blue-soft:#EEF6FB;
+    --clinic-blue-soft-2:#F5F9FC;
+    --clinic-blue-border:#D8E8F2;
+    --clinic-blue-muted:#6F8EA3;
+}
+
+
+/* PANEL DEL PACIENTE */
+
+.patientPanel{
+    background:#FFFFFF;
+}
+
+.patient-header{
+    padding:16px 18px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+}
+
+.patient-subtitle{
+    color:var(--clinic-blue-muted);
+}
+
+
+/* DATOS PRINCIPALES DEL PACIENTE */
+
+.patient-grid{
+    padding:12px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:var(--clinic-blue-soft-2);
+}
+
+.info-card{
+    border:1px solid #E4EEF4;
+    background:#FFFFFF;
+}
+
+.info-card span{
+    color:var(--clinic-blue-muted);
+}
+
+.info-card strong{
+    color:#2F4352;
+}
+
+
+/* ALERTAS CLÍNICAS */
+
+.clinical-alerts{
+    border-color:#D9E5EC;
+    background:#F7FAFC;
+}
+
+.clinical-alerts.has-alerts{
+    border-color:#E7C9C9;
+    background:#FFF7F7;
+}
+
+
+/* TÍTULO DE EVOLUCIONES */
+
+.section{
+    padding:12px 14px;
+    border-radius:12px;
+    background:var(--clinic-blue-soft);
+}
+
+.section h2{
+    color:var(--clinic-blue-dark);
+}
+
+
+/* TARJETAS DE EVOLUCIONES */
+
+.evolution-card{
+    border-color:var(--clinic-blue-border);
+    background:#FFFFFF;
+    box-shadow:0 5px 16px rgba(50, 85, 110, .05);
+}
+
+.evolution-card:hover{
+    border-color:#BCD4E3;
+    box-shadow:0 9px 22px rgba(50, 85, 110, .09);
+}
+
+.evolution-date{
+    color:var(--clinic-blue-dark);
+}
+
+.evolution-number{
+    color:var(--clinic-blue-muted);
+}
+
+.evolution-diagnosis{
+    border:1px solid var(--clinic-blue-border);
+    background:var(--clinic-blue-soft-2);
+}
+
+
+/* MEDICIONES */
+
+.evolution-metric{
+    border:1px solid #E1EDF4;
+    background:#F7FAFC;
+}
+
+.evolution-metric span{
+    color:var(--clinic-blue-muted);
+}
+
+.evolution-metric strong{
+    color:#314B5C;
+}
+
+
+/* PRÓXIMO CONTROL */
+
+.evolution-next-control{
+    border:1px solid var(--clinic-blue-border);
+    background:var(--clinic-blue-soft);
+}
+
+.evolution-next-control span{
+    color:var(--clinic-blue-muted);
+}
+
+.evolution-next-control strong{
+    color:var(--clinic-blue-dark);
+}
+
+
+/* BOTONES PRINCIPALES */
+
+.action-button{
+    background:var(--clinic-blue);
+}
+
+.action-button:hover{
+    background:var(--clinic-blue-dark);
+}
+
+.secondary-button:hover{
+    border-color:#BFD4E2;
+    background:var(--clinic-blue-soft);
+}
+
+/* =====================================================
+   CABECERA COMPACTA DEL PACIENTE
+===================================================== */
+
+.patient-header{
+    margin-bottom:12px;
+    padding:15px 17px;
+}
+
+.patient-header h1{
+    margin:0;
+}
+
+.patient-summary{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:5px 0;
+    margin-top:6px;
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+    line-height:1.45;
+}
+
+.patient-summary span{
+    display:inline-flex;
+    align-items:center;
+}
+
+.patient-summary span:not(:last-child)::after{
+    content:"";
+    width:3px;
+    height:3px;
+    margin:0 9px;
+    border-radius:50%;
+    background:#A9BECC;
+}
+
+.clinical-alerts{
+    margin-top:0;
+    margin-bottom:12px;
+}

@@ -2581,7 +2581,7 @@ body{
 
 .forgot-password-row{
     display:flex;
-    justify-content:flex-end;
+    justify-content:center;
     margin-top:-4px;
     margin-bottom:14px;
 }
@@ -3116,4 +3116,180 @@ html{
     .evolution-detail-button{
         position:static;
     }
+}
+
+/* =====================================================
+   INDEX — ACABADO CELESTE PROFESIONAL
+===================================================== */
+
+body:not(.auth-page){
+    background:
+        linear-gradient(
+            180deg,
+            #DCEEF8 0,
+            #EDF6FB 230px,
+            #F5F8FA 100%
+        );
+}
+
+/* Encabezado general */
+
+body:not(.auth-page) .app-header{
+    background:transparent;
+}
+
+/* Buscador */
+
+body:not(.auth-page) .search-container,
+body:not(.auth-page) .search-bar{
+    border:1px solid #D8E8F2;
+    background:rgba(255,255,255,.94);
+    box-shadow:0 8px 24px rgba(47,88,117,.06);
+}
+
+body:not(.auth-page) .search-container:focus-within,
+body:not(.auth-page) .search-bar:focus-within{
+    border-color:#AFCFDF;
+    box-shadow:
+        0 8px 24px rgba(47,88,117,.07),
+        0 0 0 3px rgba(63,111,145,.08);
+}
+
+/* Panel izquierdo y panel principal */
+
+body:not(.auth-page) .patients-sidebar,
+body:not(.auth-page) .patients-panel,
+body:not(.auth-page) #patientPanel{
+    border:1px solid rgba(216,232,242,.95);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.98),
+            rgba(248,252,254,.98)
+        );
+    box-shadow:0 12px 32px rgba(47,88,117,.07);
+}
+
+/* Encabezado de pacientes recientes */
+
+body:not(.auth-page) .patients-sidebar-header,
+body:not(.auth-page) .patients-panel > h2{
+    border-bottom:1px solid #D8E8F2;
+    background:linear-gradient(
+        135deg,
+        #EEF6FB,
+        #FFFFFF
+    );
+    color:#274F69;
+}
+
+/* Tarjetas del listado izquierdo */
+
+body:not(.auth-page) .patient-card{
+    border:1px solid transparent;
+    background:rgba(255,255,255,.76);
+    transition:
+        background-color .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        transform .18s ease;
+}
+
+body:not(.auth-page) .patient-card:hover{
+    border-color:#D2E5F0;
+    background:#F1F8FC;
+    box-shadow:0 5px 16px rgba(47,88,117,.07);
+    transform:translateY(-1px);
+}
+
+body:not(.auth-page) .patient-card.active{
+    border-color:#AFCFDF;
+    background:#E9F5FB;
+    box-shadow:
+        inset 3px 0 0 #3F6F91,
+        0 5px 16px rgba(47,88,117,.07);
+}
+
+/* Estado inicial del panel derecho */
+
+body:not(.auth-page) #patientPanel .welcome-state,
+body:not(.auth-page) #patientPanel .empty-state{
+    color:#607988;
+}
+
+body:not(.auth-page) #patientPanel .welcome-state h2,
+body:not(.auth-page) #patientPanel .empty-state h2{
+    color:#315F7C;
+}
+
+/* Encabezado del paciente */
+
+body:not(.auth-page) .patient-header{
+    border:1px solid #CFE3EE;
+    background:linear-gradient(
+        135deg,
+        #EAF5FB 0%,
+        #F8FCFE 58%,
+        #FFFFFF 100%
+    );
+    box-shadow:0 5px 15px rgba(47,88,117,.04);
+}
+
+/* Alertas sin advertencias */
+
+body:not(.auth-page) .clinical-alerts:not(.has-alerts){
+    border-color:#D5E6EF;
+    background:#F5FAFD;
+}
+
+/* Títulos de secciones */
+
+body:not(.auth-page) .section,
+body:not(.auth-page) .patient-files-details > summary{
+    border:1px solid #D2E5EF;
+    background:linear-gradient(
+        135deg,
+        #E8F4FA,
+        #F3F9FC
+    );
+    color:#2F617F;
+}
+
+body:not(.auth-page) .section h2{
+    color:#2F617F;
+}
+
+/* Cards de consultas */
+
+body:not(.auth-page) .evolution-card{
+    border-color:#D5E7F0;
+    background:rgba(255,255,255,.92);
+    box-shadow:0 4px 14px rgba(47,88,117,.035);
+}
+
+body:not(.auth-page) .evolution-card:hover{
+    border-color:#BDD8E7;
+    background:#F2F9FC;
+    box-shadow:0 8px 22px rgba(47,88,117,.08);
+}
+
+/* Casilleros internos */
+
+body:not(.auth-page) .evolution-diagnosis,
+body:not(.auth-page) .evolution-metric,
+body:not(.auth-page) .evolution-next-control{
+    border-color:#D2E5EF;
+    background:#F0F7FB;
+}
+
+/* Botón flotante */
+
+body:not(.auth-page) .floating-button{
+    border:1px solid rgba(255,255,255,.45);
+    box-shadow:0 10px 28px rgba(38,91,151,.25);
+}
+
+body:not(.auth-page) .floating-button:hover{
+    box-shadow:0 13px 32px rgba(38,91,151,.32);
+    transform:translateY(-2px);
 }

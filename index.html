@@ -10,6 +10,10 @@
 
     <link rel="stylesheet" href="style.css">
 
+    <link rel="manifest" href="manifest.json">
+
+    <meta name="theme-color" content="#3f6f91">
+
 </head>
 
 <body>
@@ -130,7 +134,36 @@
 
 <script src="app.js"></script>
 
+<script>
+    if("serviceWorker" in navigator){
 
+        window.addEventListener("load", async () => {
+
+            try{
+
+                const registro =
+                    await navigator.serviceWorker.register(
+                        "./service-worker.js"
+                    );
+
+                console.log(
+                    "Service Worker activo:",
+                    registro.scope
+                );
+
+            }catch(error){
+
+                console.error(
+                    "Error al registrar Service Worker:",
+                    error
+                );
+
+            }
+
+        });
+
+    }
+</script>
 
 </body>
 

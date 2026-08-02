@@ -1531,7 +1531,7 @@ async function exportarFichaPDF(){
 
             <section class="print-history">
 
-                <h2>Historial de evoluciones</h2>
+                <h2>Historial de consultas</h2>
 
                 ${evolucionesHTML}
 
@@ -1556,10 +1556,27 @@ async function exportarFichaPDF(){
     document.body.appendChild(printArea);
 
     window.addEventListener(
-        "afterprint",
-        () => printArea.remove(),
-        { once:true }
-    );
+    "afterprint",
+    () => {
+
+        printArea.remove();
+
+        document.title = tituloOriginal;
+
+    },
+    { once:true }
+);
+
+    const tituloOriginal = document.title;
+
+const nombrePacientePDF =
+    pacienteActual.nombreCompleto
+        .replace(/[\\/:*?"<>|]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+document.title =
+    `Historia clínica - ${nombrePacientePDF}`;
 
     requestAnimationFrame(() => {
 

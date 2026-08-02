@@ -383,8 +383,9 @@ if(consultas.length === 0){
 
                 <button
                     class="secondary-button evolution-detail-button"
-                    onclick="verDetalleConsulta('${c.id}')">
-
+                    type="button"
+                    onclick="verDetalleConsulta('${c.id}', ${consultas.length - i})">
+                    
                     Ver detalles
 
                 </button>
@@ -1067,7 +1068,7 @@ async function iniciar(){
 
 }
 
-async function verDetalleConsulta(id){
+async function verDetalleConsulta(id, numeroConsulta){
 
     const consultas =
         await Database.cargarConsultas(pacienteActual.id);
@@ -1096,7 +1097,7 @@ async function verDetalleConsulta(id){
 
                 <div>
 
-                    <h2>Detalle de la evolución</h2>
+                    <h2>Consulta Nº${numeroConsulta}</h2>
 
                     <p>
                         ${escaparHTML(pacienteActual.nombreCompleto)}
@@ -1277,10 +1278,10 @@ async function verDetalleConsulta(id){
         <button
             class="secondary-button export-pdf-button"
             type="button"
-            onclick="exportarEvolucionPDF('${consulta.id}')">
-
+            onclick="exportarEvolucionPDF('${consulta.id}', ${numeroConsulta})">
+            
             Exportar
-
+            
         </button>
 
         <button
@@ -1375,7 +1376,7 @@ async function eliminarPaciente(){
 
 }
 
-async function exportarEvolucionPDF(id){
+async function exportarEvolucionPDF(id, numeroConsulta){
 
     const consulta = await Database.cargarConsultaPorId(id);
 
@@ -1416,7 +1417,7 @@ async function exportarEvolucionPDF(id){
                 <div>
                     <div class="print-brand">ClinicApp</div>
                     <div class="print-document-title">
-                        Evolución clínica
+                        Consulta
                     </div>
                 </div>
 
@@ -1480,7 +1481,7 @@ async function exportarEvolucionPDF(id){
 
                 <div class="print-evolution-header">
 
-                    <h3>Evolución clínica</h3>
+                    <h3>Consulta Nº${numeroConsulta}</h3>
 
                     <strong>
                         ${formatearFecha(consulta.fecha)}

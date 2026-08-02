@@ -814,8 +814,10 @@ body{
 .consultation-detail-full p,
 .consultation-text-block p{
     margin:0;
-    line-height:1.55;
-    white-space:pre-wrap;
+    padding:0;
+    line-height:1.5;
+    white-space:pre-line;
+    text-indent:0;
 }
 
 .consultation-text-block{
@@ -2320,3 +2322,38 @@ body{
     background:#FFFFFF;
 }
 
+/* =====================================================
+   DETALLE DE EVOLUCIÓN — FONDO CELESTE Y CASILLEROS BLANCOS
+===================================================== */
+
+#modalOverlay .consultation-detail-modal .consultation-detail-section{
+    margin-bottom:12px;
+    padding:14px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:var(--clinic-blue-soft-2);
+}
+
+#modalOverlay .consultation-detail-modal .consultation-detail-section h3{
+    margin:0 0 12px;
+    color:var(--clinic-blue-dark);
+}
+
+#modalOverlay .consultation-detail-modal .consultation-detail-item,
+#modalOverlay .consultation-detail-modal .consultation-detail-full,
+#modalOverlay .consultation-detail-modal .consultation-text-block{
+    border:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+}
+
+#modalOverlay .consultation-detail-modal .consultation-detail-item span,
+#modalOverlay .consultation-detail-modal .consultation-detail-full span,
+#modalOverlay .consultation-detail-modal .consultation-text-block span{
+    color:var(--clinic-blue-muted);
+}
+
+#modalOverlay .consultation-detail-modal .consultation-detail-item strong,
+#modalOverlay .consultation-detail-modal .consultation-detail-full p,
+#modalOverlay .consultation-detail-modal .consultation-text-block p{
+    color:#2F4352;
+}

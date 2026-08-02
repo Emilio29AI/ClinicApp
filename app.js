@@ -18,6 +18,7 @@ let pacientes = [];
 let pacienteActual = null;
 let perfilMedicoActual = null;
 let mostrandoTodosPacientes = false;
+let graficoEvolucionActual = null;
 
 
 
@@ -312,6 +313,94 @@ async function mostrarPaciente(p){
 
 </details>
 
+<details class="patient-charts-details">
+
+    <summary>
+
+        <span>Gráficos de evolución</span>
+
+        <span class="patient-charts-arrow">⌄</span>
+
+    </summary>
+
+    <div class="patient-charts-content">
+
+        <div class="patient-charts-controls">
+
+            <button
+                class="chart-option-button active"
+                type="button"
+                data-chart-metric="peso">
+
+                Peso
+
+            </button>
+
+            <button
+                class="chart-option-button"
+                type="button"
+                data-chart-metric="imc">
+
+                IMC
+
+            </button>
+
+            <button
+    class="chart-option-button"
+    type="button"
+    data-chart-metric="presion">
+
+    Presión arterial
+
+</button>
+
+<button
+    class="chart-option-button"
+    type="button"
+    data-chart-metric="frecuencia_cardiaca">
+
+    Frecuencia cardíaca
+
+</button>
+
+<button
+    class="chart-option-button"
+    type="button"
+    data-chart-metric="saturacion">
+
+    Saturación
+
+</button>
+
+<button
+    class="chart-option-button"
+    type="button"
+    data-chart-metric="temperatura">
+
+    Temperatura
+
+</button>
+
+        </div>
+
+        <div class="patient-chart-wrapper">
+
+            <canvas id="patientEvolutionChart"></canvas>
+
+            <div
+                id="patientChartEmpty"
+                class="patient-chart-empty">
+
+                Cargando datos...
+
+            </div>
+
+        </div>
+
+    </div>
+
+</details>
+
 <div class="section">
 
     <h2>Consultas</h2>
@@ -344,6 +433,8 @@ document
 await cargarArchivosPaciente();
 
 const consultas = await Database.cargarConsultas(p.id);
+
+configurarGraficosEvolucion(consultas);
 
 const timeline = document.getElementById("timeline");
 
@@ -1880,6 +1971,495 @@ const opciones = {
     );
 
 }
+
+}
+
+function configurarGraficosEvolucion(consultas){
+
+    const bloqueGraficos =
+        document.querySelector(".patient-charts-details");
+
+    const botones =
+        document.querySelectorAll("[data-chart-metric]");
+
+    if(!bloqueGraficos || botones.length === 0){
+        return;
+    }
+
+    let metricaActual = "peso";
+
+    botones.forEach(boton => {
+
+        boton.addEventListener("click", () => {
+
+            metricaActual =
+                boton.dataset.chartMetric;
+
+            botones.forEach(item => {
+                item.classList.toggle(
+                    "active",
+                    item === boton
+                );
+            });
+
+            renderizarGraficoEvolucion(
+                consultas,
+                metricaActual
+            );
+
+        });
+
+    });
+
+    bloqueGraficos.addEventListener(
+        "toggle",
+        () => {
+
+            if(bloqueGraficos.open){
+
+                renderizarGraficoEvolucion(
+                    consultas,
+                    metricaActual
+                );
+
+            }
+
+        }
+    );
+
+}
+
+function renderizarGraficoEvolucion(
+    consultas,
+    metrica
+){
+
+    const canvas =
+        document.getElementById(
+            "patientEvolutionChart"
+        );
+
+    const mensaje =
+        document.getElementById(
+            "patientChartEmpty"
+        );
+
+    if(!canvas || !mensaje){
+        return;
+    }
+
+    const consultasOrdenadas =
+        [...consultas].sort(
+            (a, b) =>
+                new Date(a.fecha) -
+                new Date(b.fecha)
+        );
+
+    if(graficoEvolucionActual){
+
+        graficoEvolucionActual.destroy();
+
+        graficoEvolucionActual = null;
+
+    }
+
+
+    /* =========================================
+       PRESIÓN ARTERIAL
+    ========================================= */
+
+    if(metrica === "presion"){
+
+        const datosPresion =
+            consultasOrdenadas
+                .filter(consulta => {
+
+                    const sistolica =
+                        Number(
+                            consulta.ta_sistolica
+                        );
+
+                    const diastolica =
+                        Number(
+                            consulta.ta_diastolica
+                        );
+
+                    return (
+                        Number.isFinite(sistolica) &&
+                        Number.isFinite(diastolica)
+                    );
+
+                })
+                .map(consulta => ({
+
+                    fecha:
+                        formatearFecha(
+                            consulta.fecha
+                        ),
+
+                    sistolica:
+                        Number(
+                            consulta.ta_sistolica
+                        ),
+
+                    diastolica:
+                        Number(
+                            consulta.ta_diastolica
+                        )
+
+                }));
+
+        if(datosPresion.length === 0){
+
+            canvas.style.display = "none";
+            mensaje.style.display = "flex";
+
+            mensaje.textContent =
+                "No hay registros completos de presión arterial para graficar.";
+
+            return;
+        }
+
+        canvas.style.display = "block";
+        mensaje.style.display = "none";
+
+        graficoEvolucionActual =
+            new Chart(
+                canvas.getContext("2d"),
+                {
+
+                    type: "line",
+
+                    data: {
+
+                        labels:
+                            datosPresion.map(
+                                item => item.fecha
+                            ),
+
+                        datasets: [
+
+                            {
+                                label:
+                                    "Sistólica",
+
+                                data:
+                                    datosPresion.map(
+                                        item =>
+                                            item.sistolica
+                                    ),
+
+                                borderColor:
+                                    "#3F6F91",
+
+                                backgroundColor:
+                                    "rgba(63, 111, 145, 0.10)",
+
+                                pointBackgroundColor:
+                                    "#3F6F91",
+
+                                pointBorderColor:
+                                    "#FFFFFF",
+
+                                pointBorderWidth:2,
+                                pointRadius:4,
+                                pointHoverRadius:6,
+                                borderWidth:2,
+                                tension:0.25,
+                                fill:false
+                            },
+
+                            {
+                                label:
+                                    "Diastólica",
+
+                                data:
+                                    datosPresion.map(
+                                        item =>
+                                            item.diastolica
+                                    ),
+
+                                borderColor:
+                                    "#79A9C5",
+
+                                backgroundColor:
+                                    "rgba(121, 169, 197, 0.10)",
+
+                                pointBackgroundColor:
+                                    "#79A9C5",
+
+                                pointBorderColor:
+                                    "#FFFFFF",
+
+                                pointBorderWidth:2,
+                                pointRadius:4,
+                                pointHoverRadius:6,
+                                borderWidth:2,
+                                tension:0.25,
+                                fill:false
+                            }
+
+                        ]
+
+                    },
+
+                    options:
+                        crearOpcionesGraficoEvolucion(
+                            "mmHg",
+                            true
+                        )
+
+                }
+            );
+
+        return;
+    }
+
+
+    /* =========================================
+       RESTO DE LAS VARIABLES
+    ========================================= */
+
+    const configuraciones = {
+
+        peso: {
+            campo:"peso",
+            mensaje:"No hay registros de peso para graficar.",
+            unidad:"kg"
+        },
+
+        imc: {
+            campo:"imc",
+            mensaje:"No hay registros de IMC para graficar.",
+            unidad:""
+        },
+
+        frecuencia_cardiaca: {
+            campo:"frecuencia_cardiaca",
+            mensaje:"No hay registros de frecuencia cardíaca para graficar.",
+            unidad:"lpm"
+        },
+
+        saturacion: {
+            campo:"saturacion",
+            mensaje:"No hay registros de saturación para graficar.",
+            unidad:"%"
+        },
+
+        temperatura: {
+            campo:"temperatura",
+            mensaje:"No hay registros de temperatura para graficar.",
+            unidad:"°C"
+        }
+
+    };
+
+    const configuracion =
+        configuraciones[metrica];
+
+    if(!configuracion){
+        return;
+    }
+
+    const datos =
+        consultasOrdenadas
+            .filter(consulta => {
+
+                const valor =
+                    Number(
+                        consulta[
+                            configuracion.campo
+                        ]
+                    );
+
+                return Number.isFinite(valor);
+
+            })
+            .map(consulta => ({
+
+                fecha:
+                    formatearFecha(
+                        consulta.fecha
+                    ),
+
+                valor:
+                    Number(
+                        consulta[
+                            configuracion.campo
+                        ]
+                    )
+
+            }));
+
+    if(datos.length === 0){
+
+        canvas.style.display = "none";
+        mensaje.style.display = "flex";
+
+        mensaje.textContent =
+            configuracion.mensaje;
+
+        return;
+    }
+
+    canvas.style.display = "block";
+    mensaje.style.display = "none";
+
+    graficoEvolucionActual =
+        new Chart(
+            canvas.getContext("2d"),
+            {
+
+                type:"line",
+
+                data:{
+
+                    labels:
+                        datos.map(
+                            item => item.fecha
+                        ),
+
+                    datasets:[
+                        {
+                            data:
+                                datos.map(
+                                    item => item.valor
+                                ),
+
+                            borderColor:
+                                "#3F6F91",
+
+                            backgroundColor:
+                                "rgba(63, 111, 145, 0.12)",
+
+                            pointBackgroundColor:
+                                "#3F6F91",
+
+                            pointBorderColor:
+                                "#FFFFFF",
+
+                            pointBorderWidth:2,
+                            pointRadius:4,
+                            pointHoverRadius:6,
+                            borderWidth:2,
+                            tension:0.25,
+                            fill:true
+                        }
+                    ]
+
+                },
+
+                options:
+                    crearOpcionesGraficoEvolucion(
+                        configuracion.unidad,
+                        false
+                    )
+
+            }
+        );
+
+}
+
+function crearOpcionesGraficoEvolucion(
+    unidad,
+    mostrarLeyenda
+){
+
+    return {
+
+        responsive:true,
+
+        maintainAspectRatio:false,
+
+        interaction:{
+            mode:"index",
+            intersect:false
+        },
+
+        plugins:{
+
+            legend:{
+                display:mostrarLeyenda,
+                position:"top",
+                align:"end",
+
+                labels:{
+                    color:"#536A78",
+                    usePointStyle:true,
+                    boxWidth:8,
+                    boxHeight:8
+                }
+            },
+
+            tooltip:{
+
+                callbacks:{
+
+                    label(context){
+
+                        const etiqueta =
+                            context.dataset.label
+                                ? `${context.dataset.label}: `
+                                : "";
+
+                        const valor =
+                            context.parsed.y;
+
+                        return unidad
+                            ? `${etiqueta}${valor} ${unidad}`
+                            : `${etiqueta}${valor}`;
+
+                    }
+
+                }
+
+            }
+
+        },
+
+        scales:{
+
+            x:{
+
+                grid:{
+                    display:false
+                },
+
+                ticks:{
+                    color:"#718391",
+                    maxRotation:0
+                }
+
+            },
+
+            y:{
+
+                beginAtZero:false,
+
+                grid:{
+                    color:
+                        "rgba(111, 142, 163, 0.14)"
+                },
+
+                ticks:{
+
+                    color:"#718391",
+
+                    callback(valor){
+
+                        return unidad
+                            ? `${valor} ${unidad}`
+                            : valor;
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    };
 
 }
 

@@ -3356,3 +3356,122 @@ body:not(.auth-page) .floating-button:hover{
     break-inside:auto;
     page-break-inside:auto;
 }
+
+/* =====================================================
+   GRÁFICOS DE EVOLUCIÓN
+===================================================== */
+
+.patient-charts-details{
+    margin:18px 0 24px;
+    overflow:hidden;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+}
+
+.patient-charts-details > summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:16px 14px;
+    list-style:none;
+    cursor:pointer;
+    user-select:none;
+    background:linear-gradient(
+        135deg,
+        #E8F4FA,
+        #F3F9FC
+    );
+    color:var(--clinic-blue-dark);
+    font-size:18px;
+    font-weight:700;
+}
+
+.patient-charts-details > summary::-webkit-details-marker{
+    display:none;
+}
+
+.patient-charts-arrow{
+    display:inline-block;
+    font-size:18px;
+    transition:transform .2s ease;
+}
+
+.patient-charts-details[open] .patient-charts-arrow{
+    transform:rotate(180deg);
+}
+
+.patient-charts-content{
+    padding:16px;
+    background:#F8FBFD;
+}
+
+.patient-charts-controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:16px;
+}
+
+.chart-option-button{
+    padding:8px 15px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:8px;
+    background:#FFFFFF;
+    color:var(--clinic-blue-dark);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.chart-option-button:hover{
+    background:var(--clinic-blue-soft);
+}
+
+.chart-option-button.active{
+    border-color:var(--clinic-blue);
+    background:var(--clinic-blue);
+    color:#FFFFFF;
+}
+
+.patient-chart-wrapper{
+    position:relative;
+    width:100%;
+    min-height:300px;
+    padding:14px;
+    box-sizing:border-box;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+}
+
+#patientEvolutionChart{
+    width:100% !important;
+    height:280px !important;
+}
+
+.patient-chart-empty{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    color:#718391;
+    font-size:13px;
+    text-align:center;
+}
+
+@media (max-width:650px){
+
+    .patient-chart-wrapper{
+        min-height:260px;
+        padding:10px;
+    }
+
+    #patientEvolutionChart{
+        height:240px !important;
+    }
+
+}

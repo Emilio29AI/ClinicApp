@@ -1864,20 +1864,22 @@ const opciones = {
 
     }catch(error){
 
-        console.error(
-            "Error al generar PDF móvil:",
-            error
-        );
+    console.error(
+        "Error completo al generar PDF móvil:",
+        error
+    );
 
-        alert("No se pudo generar el PDF.");
+    const detalleError =
+        error?.message ||
+        error?.toString() ||
+        "Error desconocido";
 
-    }finally{
+    alert(
+        "No se pudo generar el PDF.\n\n" +
+        detalleError
+    );
 
-        contenedor.remove();
-
-        window.scrollTo(0, scrollAnterior);
-
-    }
+}
 
 }
 

@@ -1914,29 +1914,72 @@ function usarExportacionMovilPDF(){
 
 async function descargarPDFMovil(printArea, nombreArchivo){
 
-const opciones = {
-        margin: [8, 8, 8, 8],
-        filename: nombreArchivo,
-        image: {
-            type: "jpeg",
-            quality: 0.98
-        },
-        html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: "#ffffff"
-        },
-        jsPDF: {
-            unit: "mm",
-            format: "a4",
-            orientation: "portrait"
-        },
-        pagebreak: {
-            mode: ["css", "legacy"]
-        }
-    };
+    if(typeof html2pdf === "undefined"){
+
+        alert(
+            "No se pudo cargar el generador de PDF. Verificá la conexión a Internet."
+        );
+
+        return;
+    }
+
+    let contenedor = null;
 
     try{
+
+        contenedor = document.createElement("div");
+
+        contenedor.className = "mobile-pdf-container";
+        contenedor.innerHTML = printArea.innerHTML;
+
+        document.body.appendChild(contenedor);
+
+        await new Promise(resolve => {
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(resolve);
+            });
+
+        });
+
+        const opciones = {
+
+            margin:[8, 8, 8, 8],
+
+            filename:nombreArchivo,
+
+            image:{
+                type:"jpeg",
+                quality:0.92
+            },
+
+            html2canvas:{
+                scale:1,
+                useCORS:true,
+                allowTaint:false,
+                backgroundColor:"#ffffff",
+                logging:false,
+                scrollX:0,
+                scrollY:0,
+                windowWidth:700
+            },
+
+            jsPDF:{
+                unit:"mm",
+                format:"a4",
+                orientation:"portrait",
+                compress:true
+            },
+
+            pagebreak:{
+                mode:["css", "legacy"],
+                avoid:[
+                    ".print-evolution-header",
+                    ".print-measurement"
+                ]
+            }
+
+        };
 
         await html2pdf()
             .set(opciones)
@@ -1945,22 +1988,28 @@ const opciones = {
 
     }catch(error){
 
-    console.error(
-        "Error completo al generar PDF móvil:",
-        error
-    );
+        console.error(
+            "Error completo al generar PDF móvil:",
+            error
+        );
 
-    const detalleError =
-        error?.message ||
-        error?.toString() ||
-        "Error desconocido";
+        const detalleError =
+            error?.message ||
+            error?.toString() ||
+            "Error desconocido";
 
-    alert(
-        "No se pudo generar el PDF.\n\n" +
-        detalleError
-    );
+        alert(
+            "No se pudo generar el PDF.\n\n" +
+            detalleError
+        );
 
-}
+    }finally{
+
+        if(contenedor && contenedor.isConnected){
+            contenedor.remove();
+        }
+
+    }
 
 }
 

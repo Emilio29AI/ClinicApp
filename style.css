@@ -1181,8 +1181,16 @@ body{
         gap:12px;
     }
 
-    .logo{
-        font-size:22px;
+   .logo{
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        gap:4px;
+        text-align:center;
+    }
+
+    .logo-symbol{
+        margin:0;
     }
 
     .today{

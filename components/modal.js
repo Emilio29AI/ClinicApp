@@ -1553,19 +1553,33 @@ async function exportarFichaPDF(){
 
     `;
 
-    document.body.appendChild(printArea);
+    if(usarExportacionMovilPDF()){
 
-    window.addEventListener(
+    const nombrePaciente =
+        pacienteActual.nombreCompleto
+            .replace(/[\\/:*?"<>|]/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+    await descargarPDFMovil(
+        printArea,
+        `Historia clinica - ${nombrePaciente}.pdf`
+    );
+
+    return;
+}
+
+document.body.appendChild(printArea);
+
+window.addEventListener(
     "afterprint",
-    () => {
-
-        printArea.remove();
-
-        document.title = tituloOriginal;
-
-    },
+    () => printArea.remove(),
     { once:true }
 );
+
+requestAnimationFrame(() => {
+    window.print();
+});
 
     const tituloOriginal = document.title;
 

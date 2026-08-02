@@ -3301,3 +3301,38 @@ body:not(.auth-page) .floating-button:hover{
     box-shadow:0 13px 32px rgba(38,91,151,.32);
     transform:translateY(-2px);
 }
+
+/* =====================================================
+   GENERACIÓN DE PDF EN CELULAR
+===================================================== */
+
+.mobile-pdf-container{
+    position:fixed;
+    top:0;
+    left:-10000px;
+    width:794px;
+    padding:38px;
+    box-sizing:border-box;
+    background:#FFFFFF;
+    color:#1F2937;
+    font-family:Arial, sans-serif;
+    z-index:-1;
+}
+
+.mobile-pdf-container .print-document{
+    width:100%;
+}
+
+.mobile-pdf-container .print-evolution{
+    break-inside:avoid;
+    page-break-inside:avoid;
+}
+
+.mobile-pdf-container .print-header,
+.mobile-pdf-container .print-patient-header,
+.mobile-pdf-container .print-alerts,
+.mobile-pdf-container .print-observations,
+.mobile-pdf-container .print-evolution,
+.mobile-pdf-container .print-footer{
+    visibility:visible;
+}

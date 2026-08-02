@@ -1801,6 +1801,83 @@ async function eliminarArchivoPaciente(id, ruta){
     }
 }
 
+function usarExportacionMovilPDF(){
+
+    const pantallaMovil =
+        window.matchMedia("(max-width: 768px)").matches;
+
+    const instaladaComoApp =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+
+    return pantallaMovil || instaladaComoApp;
+}
+
+
+async function descargarPDFMovil(printArea, nombreArchivo){
+
+    if(typeof html2pdf === "undefined"){
+
+        alert(
+            "No se pudo cargar el generador de PDF. Verificá la conexión a Internet."
+        );
+
+        return;
+    }
+
+    const contenedor = document.createElement("div");
+
+    contenedor.className = "mobile-pdf-container";
+    contenedor.innerHTML = printArea.innerHTML;
+
+    document.body.appendChild(contenedor);
+
+    const opciones = {
+        margin: [8, 8, 8, 8],
+        filename: nombreArchivo,
+        image: {
+            type: "jpeg",
+            quality: 0.98
+        },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff"
+        },
+        jsPDF: {
+            unit: "mm",
+            format: "a4",
+            orientation: "portrait"
+        },
+        pagebreak: {
+            mode: ["css", "legacy"]
+        }
+    };
+
+    try{
+
+        await html2pdf()
+            .set(opciones)
+            .from(contenedor)
+            .save();
+
+    }catch(error){
+
+        console.error(
+            "Error al generar PDF móvil:",
+            error
+        );
+
+        alert("No se pudo generar el PDF.");
+
+    }finally{
+
+        contenedor.remove();
+
+    }
+
+}
+
 
 // ----------------------------
 // BOTÓN NUEVO PACIENTE

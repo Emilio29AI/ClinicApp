@@ -63,7 +63,11 @@ function renderPacientes(lista) {
 
         const card = document.createElement("div");
 
-        card.className = "patient-card";
+        card.className = pacienteActual && pacienteActual.id === p.id
+            ? "patient-card active"
+            : "patient-card";
+
+        card.dataset.patientId = p.id;
 
         card.innerHTML = `
 
@@ -182,6 +186,17 @@ function crearMetricaEvolucion(etiqueta, valor){
 async function mostrarPaciente(p){
 
     pacienteActual = p;
+
+    document
+    .querySelectorAll(".patient-card")
+    .forEach(card => {
+
+        card.classList.toggle(
+            "active",
+            card.dataset.patientId === p.id
+        );
+
+    });
 
     const edad = p.edad;
 

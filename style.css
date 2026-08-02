@@ -1875,3 +1875,345 @@ body{
     margin-top:0;
     margin-bottom:12px;
 }
+
+.patient-card:hover{
+    border-color:var(--clinic-blue-border);
+    background:var(--clinic-blue-soft);
+}
+
+.patient-card.active{
+    border-color:#BCD4E3;
+    background:var(--clinic-blue-soft);
+    box-shadow:inset 3px 0 0 var(--clinic-blue);
+}
+
+/* =====================================================
+   MODALES DE CARGA — ESTILO CLINICAPP
+===================================================== */
+
+/* Fondo general del formulario */
+
+.modal-large{
+    background:#FFFFFF;
+}
+
+
+/* Encabezados */
+
+.modal-large .evolution-modal-header,
+.modal-large .modal-header{
+    margin-bottom:16px;
+    padding:14px 16px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+}
+
+.modal-large .evolution-modal-header h2,
+.modal-large .modal-header h2{
+    color:var(--clinic-blue-dark);
+}
+
+.modal-large .evolution-modal-header p,
+.modal-large .modal-header p{
+    color:var(--clinic-blue-muted);
+}
+
+
+/* Secciones de los formularios */
+
+.evolution-form-section,
+.modal-large .form-section{
+    margin-bottom:14px;
+    padding:16px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:var(--clinic-blue-soft-2);
+}
+
+.evolution-form-section h3,
+.modal-large .form-section h3{
+    margin-top:0;
+    color:var(--clinic-blue-dark);
+}
+
+
+/* Campos */
+
+.modal-large input,
+.modal-large select,
+.modal-large textarea{
+    border-color:#D8E5ED;
+    background:#FFFFFF;
+    transition:
+        border-color .2s,
+        box-shadow .2s,
+        background .2s;
+}
+
+.modal-large input:hover,
+.modal-large select:hover,
+.modal-large textarea:hover{
+    border-color:#BDD2E0;
+}
+
+.modal-large input:focus,
+.modal-large select:focus,
+.modal-large textarea:focus{
+    border-color:var(--clinic-blue);
+    background:#FFFFFF;
+    box-shadow:0 0 0 3px rgba(63,111,145,.12);
+}
+
+.modal-large label{
+    color:#526B7C;
+}
+
+
+/* Secciones desplegables de evolución */
+
+.evolution-optional-section{
+    margin-bottom:12px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+    overflow:hidden;
+}
+
+.evolution-optional-section summary{
+    padding:13px 15px;
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+    font-weight:600;
+    cursor:pointer;
+}
+
+.evolution-optional-section[open] summary{
+    border-bottom:1px solid var(--clinic-blue-border);
+}
+
+.evolution-optional-section .optional-fields{
+    padding:15px;
+    background:var(--clinic-blue-soft-2);
+}
+
+
+/* Pie con botones */
+
+.modal-large .modal-buttons{
+    border-top:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+}
+
+
+/* Botón cerrar */
+
+.modal-large .modal-close-button:hover{
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+}
+
+
+/* Formulario de paciente */
+
+.modal-large .form-grid > div{
+    min-width:0;
+}
+
+.modal-large .form-full-width textarea,
+.modal-large .form-span-2 textarea{
+    background:#FFFFFF;
+}
+
+
+/* Editar y nuevo paciente también reciben el estilo */
+
+#modalOverlay .modal-large:not(.consultation-detail-modal){
+    border:1px solid var(--clinic-blue-border);
+    box-shadow:0 24px 70px rgba(40,75,100,.16);
+}
+
+/* =====================================================
+   CORRECCIÓN DESPLEGABLES DE EVOLUCIÓN
+===================================================== */
+
+#modalOverlay .evolution-modal details.evolution-optional-section{
+    display:block;
+    width:100%;
+    margin:0 0 12px;
+    padding:0;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+    overflow:visible;
+}
+
+#modalOverlay .evolution-modal details.evolution-optional-section summary{
+    display:list-item;
+    width:auto;
+    min-height:48px;
+    padding:14px 18px;
+    border:0;
+    border-radius:11px;
+    background:var(--clinic-blue-soft);
+    color:var(--clinic-blue-dark);
+    font-size:14px;
+    font-weight:700;
+    line-height:20px;
+    cursor:pointer;
+    list-style-position:inside;
+    opacity:1;
+    visibility:visible;
+}
+
+#modalOverlay .evolution-modal details.evolution-optional-section summary::marker{
+    color:var(--clinic-blue-dark);
+    font-size:12px;
+}
+
+#modalOverlay .evolution-modal details.evolution-optional-section[open] summary{
+    border-bottom:1px solid var(--clinic-blue-border);
+    border-radius:11px 11px 0 0;
+}
+
+#modalOverlay .evolution-modal details.evolution-optional-section .optional-fields{
+    display:grid;
+    padding:16px;
+    background:var(--clinic-blue-soft-2);
+}
+
+#modalOverlay .evolution-modal details.evolution-optional-section:not([open]) .optional-fields{
+    display:none;
+}
+
+/* =====================================================
+   FORMULARIO DE PACIENTE — MISMO ESTILO QUE EVOLUCIÓN
+===================================================== */
+
+#modalOverlay .patient-form-modal{
+    border:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+    box-shadow:0 24px 70px rgba(40,75,100,.16);
+}
+
+
+/* CABECERA */
+
+#modalOverlay .patient-form-modal .patient-form-header{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    margin-bottom:16px;
+    padding:14px 16px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+}
+
+#modalOverlay .patient-form-modal .patient-form-header h2{
+    margin:0;
+    color:var(--clinic-blue-dark);
+}
+
+#modalOverlay .patient-form-modal .patient-form-header p{
+    margin:6px 0 0;
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+}
+
+#modalOverlay .patient-form-modal .patient-form-header .modal-close-button{
+    position:static;
+    flex-shrink:0;
+    margin:0;
+}
+
+
+/* BLOQUE GENERAL DEL FORMULARIO */
+
+#modalOverlay .patient-form-modal .patient-form-body{
+    margin-bottom:14px;
+    padding:16px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:var(--clinic-blue-soft-2);
+}
+
+
+/* QUITAR LAS TARJETAS INDIVIDUALES */
+
+#modalOverlay .patient-form-modal .form-grid > div{
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+}
+
+
+/* CAMPOS */
+
+#modalOverlay .patient-form-modal input,
+#modalOverlay .patient-form-modal select,
+#modalOverlay .patient-form-modal textarea{
+    width:100%;
+    border:1px solid #D8E5ED;
+    background:#FFFFFF;
+    transition:
+        border-color .2s,
+        box-shadow .2s;
+}
+
+#modalOverlay .patient-form-modal input:hover,
+#modalOverlay .patient-form-modal select:hover,
+#modalOverlay .patient-form-modal textarea:hover{
+    border-color:#BDD2E0;
+}
+
+#modalOverlay .patient-form-modal input:focus,
+#modalOverlay .patient-form-modal select:focus,
+#modalOverlay .patient-form-modal textarea:focus{
+    border-color:var(--clinic-blue);
+    box-shadow:0 0 0 3px rgba(63,111,145,.12);
+}
+
+#modalOverlay .patient-form-modal label{
+    color:#526B7C;
+}
+
+
+/* ALERTAS Y OBSERVACIONES */
+
+#modalOverlay .patient-form-modal .form-full-width{
+    grid-column:1 / -1;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    width:100%;
+}
+
+#modalOverlay .patient-form-modal #observaciones{
+    min-height:90px;
+}
+
+
+/* BOTONES */
+
+#modalOverlay .patient-form-modal .modal-buttons{
+    border-top:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+}
+
+.patient-card.active{
+    border-color:#BCD4E3;
+    background:var(--clinic-blue-soft);
+    box-shadow:inset 3px 0 0 var(--clinic-blue);
+}

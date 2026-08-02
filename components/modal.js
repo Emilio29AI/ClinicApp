@@ -14,107 +14,159 @@ function abrirModalNuevoPaciente() {
 
     overlay.innerHTML = `
 
-        <div class="modal modal-large">
+        <div class="modal modal-large patient-form-modal">
 
-            <h2>Nuevo paciente</h2>
-
-            <div class="form-grid">
+            <div class="patient-form-header">
 
                 <div>
-                    <label>Apellido *</label>
-                    <input id="apellido">
+                    <h2>Nuevo paciente</h2>
+                    <p>Completá los datos principales de la ficha.</p>
                 </div>
 
-                <div>
-                    <label>Nombre *</label>
-                    <input id="nombre">
-                </div>
+                <button
+                    class="modal-close-button"
+                    type="button"
+                    onclick="cerrarModal()"
+                    aria-label="Cerrar">
 
-                <div>
-                    <label>Fecha de nacimiento</label>
-                    <input id="fechaNacimiento" type="date">
-                </div>
+                    ×
 
-                <div>
-                    <label>DNI</label>
-                    <input id="dni">
-                </div>
-
-                <div>
-                    <label>Sexo</label>
-                    <select id="sexo">
-                        <option value="">Seleccionar</option>
-                        <option value="Femenino">Femenino</option>
-                        <option value="Masculino">Masculino</option>
-                        <option value="Otro">Otro</option>
-                        <option value="No especifica">No especifica</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Teléfono</label>
-                    <input id="telefono">
-                </div>
-
-                <div>
-                    <label>Email</label>
-                    <input id="email" type="email">
-                </div>
-
-                <div>
-                    <label>Obra social</label>
-                    <input id="obraSocial">
-                </div>
-
-                <div>
-                    <label>N.º de afiliado</label>
-                    <input id="nroAfiliado">
-                </div>
-
-                <div>
-                    <label>Dirección</label>
-                    <input id="direccion">
-                </div>
-
-                <div>
-                    <label>Ciudad</label>
-                    <input id="ciudad">
-                </div>
-
-                <div>
-                    <label>Provincia</label>
-                    <input id="provincia">
-                </div>
-
-                <div>
-                    <label>Código postal</label>
-                    <input id="codigoPostal">
-                </div>
-
-                <div>
-                    <label>Contacto de emergencia</label>
-                    <input id="contactoEmergencia">
-                </div>
-
-                <div>
-                    <label>Teléfono de emergencia</label>
-                    <input id="telefonoEmergencia">
-                </div>
-
-                <div class="form-full-width">
-                    <label>Alertas clínicas</label>
-                    <input id="alertasClinicas" placeholder="Ej.: alergia a penicilina, anticoagulado">
-                </div>
+                </button>
 
             </div>
 
-            <label>Observaciones generales</label>
-            <textarea id="observaciones"></textarea>
+            <div class="patient-form-body">
+
+                <div class="form-grid">
+
+                    <div>
+                        <label>Apellido *</label>
+                        <input id="apellido">
+                    </div>
+
+                    <div>
+                        <label>Nombre *</label>
+                        <input id="nombre">
+                    </div>
+
+                    <div>
+                        <label>Fecha de nacimiento</label>
+                        <input id="fechaNacimiento" type="date">
+                    </div>
+
+                    <div>
+                        <label>DNI</label>
+                        <input id="dni">
+                    </div>
+
+                    <div>
+                        <label>Sexo</label>
+
+                        <select id="sexo">
+
+                            <option value="">
+                                Seleccionar
+                            </option>
+
+                            <option value="Femenino">
+                                Femenino
+                            </option>
+
+                            <option value="Masculino">
+                                Masculino
+                            </option>
+
+                            <option value="Otro">
+                                Otro
+                            </option>
+
+                            <option value="No especifica">
+                                No especifica
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div>
+                        <label>Teléfono</label>
+                        <input id="telefono">
+                    </div>
+
+                    <div>
+                        <label>Email</label>
+                        <input id="email" type="email">
+                    </div>
+
+                    <div>
+                        <label>Obra social</label>
+                        <input id="obraSocial">
+                    </div>
+
+                    <div>
+                        <label>N.º de afiliado</label>
+                        <input id="nroAfiliado">
+                    </div>
+
+                    <div>
+                        <label>Dirección</label>
+                        <input id="direccion">
+                    </div>
+
+                    <div>
+                        <label>Ciudad</label>
+                        <input id="ciudad">
+                    </div>
+
+                    <div>
+                        <label>Provincia</label>
+                        <input id="provincia">
+                    </div>
+
+                    <div>
+                        <label>Código postal</label>
+                        <input id="codigoPostal">
+                    </div>
+
+                    <div>
+                        <label>Contacto de emergencia</label>
+                        <input id="contactoEmergencia">
+                    </div>
+
+                    <div>
+                        <label>Teléfono de emergencia</label>
+                        <input id="telefonoEmergencia">
+                    </div>
+
+                    <div class="form-full-width">
+
+                        <label>Alertas clínicas</label>
+
+                        <input
+                            id="alertasClinicas"
+                            placeholder="Ej.: alergia a penicilina, anticoagulado">
+
+                    </div>
+
+                    <div class="form-full-width">
+
+                        <label>Observaciones generales</label>
+
+                        <textarea
+                            id="observaciones"
+                            placeholder="Antecedentes y observaciones relevantes"></textarea>
+
+                    </div>
+
+                </div>
+
+            </div>
 
             <div class="modal-buttons">
 
                 <button
                     class="secondary-button"
+                    type="button"
                     onclick="cerrarModal()">
 
                     Cancelar
@@ -123,6 +175,7 @@ function abrirModalNuevoPaciente() {
 
                 <button
                     class="action-button"
+                    type="button"
                     onclick="guardarNuevoPaciente()">
 
                     Guardar
@@ -728,9 +781,28 @@ function abrirModalEditarPaciente(){
 
     overlay.innerHTML = `
 
-        <div class="modal modal-large">
+        <div class="modal modal-large patient-form-modal">
 
-            <h2>Editar paciente</h2>
+            <div class="patient-form-header">
+
+                <div>
+                    <h2>Editar paciente</h2>
+                    <p>Actualizá los datos de la ficha del paciente.</p>
+                </div>
+
+            <button
+            class="modal-close-button"
+            type="button"
+            onclick="cerrarModal()"
+            aria-label="Cerrar">
+
+            ×
+
+            </button>
+
+            </div>
+
+        <div class="patient-form-body">
 
             <div class="form-grid">
 
@@ -881,6 +953,7 @@ function abrirModalEditarPaciente(){
                 </div>
 
             </div>
+        </div>
 
             <div class="modal-buttons">
 

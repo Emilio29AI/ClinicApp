@@ -1928,19 +1928,215 @@ async function descargarPDFMovil(printArea, nombreArchivo){
     try{
 
         contenedor = document.createElement("div");
-
         contenedor.className = "mobile-pdf-container";
-        contenedor.innerHTML = printArea.innerHTML;
 
+        const contenidoClonado =
+            printArea.cloneNode(true);
+
+        contenidoClonado.removeAttribute("id");
+
+        /*
+         * Primero se agrega al documento.
+         * Recién después se pueden consultar correctamente
+         * los estilos calculados.
+         */
+        contenedor.appendChild(contenidoClonado);
         document.body.appendChild(contenedor);
+
+        contenedor.style.setProperty(
+            "display",
+            "block",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "visibility",
+            "visible",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "opacity",
+            "1",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "position",
+            "absolute",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "top",
+            "0",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "left",
+            "0",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "width",
+            "700px",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "height",
+            "auto",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "min-height",
+            "1px",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "overflow",
+            "visible",
+            "important"
+        );
+
+        contenedor.style.setProperty(
+            "background",
+            "#ffffff",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "display",
+            "block",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "visibility",
+            "visible",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "opacity",
+            "1",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "position",
+            "relative",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "width",
+            "100%",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "height",
+            "auto",
+            "important"
+        );
+
+        contenidoClonado.style.setProperty(
+            "overflow",
+            "visible",
+            "important"
+        );
+
+        /*
+         * Se hace después de agregarlo al DOM.
+         */
+        contenidoClonado
+    .querySelectorAll("*")
+    .forEach(elemento => {
+
+        elemento.style.setProperty(
+            "visibility",
+            "visible",
+            "important"
+        );
+
+        elemento.style.setProperty(
+            "opacity",
+            "1",
+            "important"
+        );
+
+    });
 
         await new Promise(resolve => {
 
             requestAnimationFrame(() => {
-                requestAnimationFrame(resolve);
+
+                requestAnimationFrame(() => {
+
+                    setTimeout(resolve, 300);
+
+                });
+
             });
 
         });
+
+        const rect =
+            contenidoClonado.getBoundingClientRect();
+
+        console.log(
+            "Estado PDF móvil:",
+            {
+                ancho:rect.width,
+                alto:rect.height,
+                scrollWidth:
+                    contenidoClonado.scrollWidth,
+                scrollHeight:
+                    contenidoClonado.scrollHeight,
+                display:
+                    getComputedStyle(
+                        contenidoClonado
+                    ).display,
+                visibility:
+                    getComputedStyle(
+                        contenidoClonado
+                    ).visibility,
+                opacity:
+                    getComputedStyle(
+                        contenidoClonado
+                    ).opacity,
+                texto:
+                    contenidoClonado.innerText
+                        .trim()
+                        .slice(0, 300)
+            }
+        );
+
+        if(
+            rect.width === 0 ||
+            rect.height === 0
+        ){
+
+            throw new Error(
+                `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
+            );
+
+        }
+
+        if(
+            !contenidoClonado.innerText.trim()
+        ){
+
+            throw new Error(
+                "El contenido clonado no contiene texto."
+            );
+
+        }
 
         const opciones = {
 
@@ -1950,17 +2146,18 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
             image:{
                 type:"jpeg",
-                quality:0.92
+                quality:0.95
             },
 
             html2canvas:{
-                scale:1,
+                scale:1.5,
                 useCORS:true,
                 allowTaint:false,
                 backgroundColor:"#ffffff",
-                logging:false,
+                logging:true,
                 scrollX:0,
                 scrollY:0,
+                width:700,
                 windowWidth:700
             },
 
@@ -1972,10 +2169,9 @@ async function descargarPDFMovil(printArea, nombreArchivo){
             },
 
             pagebreak:{
-                mode:["css", "legacy"],
-                avoid:[
-                    ".print-evolution-header",
-                    ".print-measurement"
+                mode:[
+                    "css",
+                    "legacy"
                 ]
             }
 
@@ -1983,7 +2179,7 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
         await html2pdf()
             .set(opciones)
-            .from(contenedor)
+            .from(contenidoClonado)
             .save();
 
     }catch(error){
@@ -2005,7 +2201,10 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
     }finally{
 
-        if(contenedor && contenedor.isConnected){
+        if(
+            contenedor &&
+            contenedor.isConnected
+        ){
             contenedor.remove();
         }
 

@@ -1417,7 +1417,7 @@ async function exportarEvolucionPDF(id, numeroConsulta){
                 <div>
                     <div class="print-brand">ClinicApp</div>
                     <div class="print-document-title">
-                        Consulta
+                        Consulta Nº${numeroConsulta}
                     </div>
                 </div>
 
@@ -1591,17 +1591,34 @@ async function exportarEvolucionPDF(id, numeroConsulta){
 
     `;
 
+    const tituloOriginal = document.title;
+
+    const nombrePacientePDF =
+    pacienteActual.nombreCompleto
+        .replace(/[\\/:*?"<>|]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    document.title =
+    `${nombrePacientePDF} - Consulta ${numeroConsulta}`;
+
     document.body.appendChild(printArea);
 
     window.addEventListener(
-        "afterprint",
-        () => printArea.remove(),
-        { once:true }
-    );
+    "afterprint",
+    () => {
 
-    requestAnimationFrame(() => {
-        window.print();
-    });
+        printArea.remove();
+
+        document.title = tituloOriginal;
+
+    },
+    { once:true }
+);
+
+requestAnimationFrame(() => {
+    window.print();
+});
 
 }
 

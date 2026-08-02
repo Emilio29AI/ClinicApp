@@ -1203,6 +1203,15 @@ function abrirFichaCompletaPaciente(){
                 </button>
 
                 <button
+                    class="secondary-button export-pdf-button"
+                    type="button"
+                    onclick="exportarFichaPDF()">
+
+                    Exportar PDF
+
+                </button>
+
+                <button
                     class="action-button"
                     onclick="cerrarModal(); abrirModalEditarPaciente();">
 
@@ -1237,6 +1246,394 @@ function crearDatoFicha(etiqueta, valor){
             </strong>
 
         </div>
+
+    `;
+
+}
+
+async function exportarFichaPDF(){
+
+    if(!pacienteActual) return;
+
+    const { data: consultas, error } =
+        await supabaseClient
+            .from("consultas")
+            .select("*")
+            .eq("paciente_id", pacienteActual.id)
+            .order("fecha", { ascending:false });
+
+    if(error){
+
+        console.error(error);
+
+        alert(
+            "No se pudo preparar el PDF: " +
+            error.message
+        );
+
+        return;
+    }
+
+    const perfil =
+        perfilMedicoActual || {};
+
+    const nombreProfesional = [
+        perfil.nombre,
+        perfil.apellido
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    const evolucionesHTML =
+        consultas && consultas.length
+            ? consultas.map((consulta, indice) => {
+
+                const tension =
+                    consulta.ta_sistolica ||
+                    consulta.ta_diastolica
+                        ? `${consulta.ta_sistolica || "-"} / ${consulta.ta_diastolica || "-"}`
+                        : "-";
+
+                return `
+
+                    <section class="print-evolution">
+
+                        <div class="print-evolution-header">
+
+                            <h3>
+                                Consulta ${consultas.length - indice}
+                            </h3>
+
+                            <strong>
+                                ${formatearFecha(consulta.fecha)}
+                            </strong>
+
+                        </div>
+
+                        ${crearCampoPDF(
+                            "Motivo de consulta",
+                            consulta.motivo
+                        )}
+
+                        ${crearCampoPDF(
+                            "Evolución clínica",
+                            consulta.evolucion
+                        )}
+
+                        ${crearCampoPDF(
+                            "Diagnóstico o impresión clínica",
+                            consulta.diagnostico
+                        )}
+
+                        ${crearCampoPDF(
+                            "Conducta y plan",
+                            consulta.conducta
+                        )}
+
+                        <div class="print-measurements">
+
+                            ${crearDatoPDF(
+                                "Peso",
+                                consulta.peso
+                                    ? `${consulta.peso} kg`
+                                    : null
+                            )}
+
+                            ${crearDatoPDF(
+                                "Talla",
+                                consulta.talla
+                                    ? `${consulta.talla} cm`
+                                    : null
+                            )}
+
+                            ${crearDatoPDF(
+                                "IMC",
+                                consulta.imc
+                            )}
+
+                            ${crearDatoPDF(
+                                "Tensión arterial",
+                                tension !== "-"
+                                    ? tension
+                                    : null
+                            )}
+
+                            ${crearDatoPDF(
+                                "Frecuencia cardíaca",
+                                consulta.frecuencia_cardiaca
+                                    ? `${consulta.frecuencia_cardiaca} lpm`
+                                    : null
+                            )}
+
+                            ${crearDatoPDF(
+                                "Temperatura",
+                                consulta.temperatura
+                                    ? `${consulta.temperatura} °C`
+                                    : null
+                            )}
+
+                            ${crearDatoPDF(
+                                "Saturación",
+                                consulta.saturacion
+                                    ? `${consulta.saturacion} %`
+                                    : null
+                            )}
+
+                        </div>
+
+                        ${
+                            consulta.proximo_control
+                                ? `
+                                    <div class="print-next-control">
+                                        Próximo control:
+                                        <strong>
+                                            ${formatearFecha(
+                                                consulta.proximo_control
+                                            )}
+                                        </strong>
+                                    </div>
+                                `
+                                : ""
+                        }
+
+                    </section>
+
+                `;
+
+            }).join("")
+            : `
+                <p class="print-empty">
+                    No hay consultas registradas.
+                </p>
+            `;
+
+    const printArea =
+        document.createElement("div");
+
+    printArea.id = "printArea";
+
+    printArea.innerHTML = `
+
+        <article class="print-document">
+
+            <header class="print-header">
+
+                <div>
+                    <div class="print-brand">
+                        ClinicApp
+                    </div>
+
+                    <div class="print-document-title">
+                        Historia clínica
+                    </div>
+                </div>
+
+                <div class="print-professional">
+
+                    ${
+                        nombreProfesional
+                            ? `<strong>${escaparHTML(nombreProfesional)}</strong>`
+                            : ""
+                    }
+
+                    ${
+                        perfil.especialidad
+                            ? `<span>${escaparHTML(perfil.especialidad)}</span>`
+                            : ""
+                    }
+
+                    ${
+                        perfil.matricula
+                            ? `<span>Matrícula: ${escaparHTML(perfil.matricula)}</span>`
+                            : ""
+                    }
+
+                </div>
+
+            </header>
+
+            <section class="print-patient-header">
+
+                <h1>
+                    ${escaparHTML(
+                        pacienteActual.nombreCompleto
+                    )}
+                </h1>
+
+                <div class="print-patient-summary">
+
+                    ${crearDatoResumenPDF(
+                        "DNI",
+                        pacienteActual.dni
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Edad",
+                        pacienteActual.edad !== null &&
+                        pacienteActual.edad !== undefined
+                            ? `${pacienteActual.edad} años`
+                            : null
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Obra social",
+                        pacienteActual.obraSocial
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Afiliado",
+                        pacienteActual.nroAfiliado
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Teléfono",
+                        pacienteActual.telefono
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Email",
+                        pacienteActual.email
+                    )}
+
+                </div>
+
+            </section>
+
+            ${
+                pacienteActual.alertasClinicas
+                    ? `
+                        <section class="print-alerts">
+                            <strong>Alertas clínicas</strong>
+                            <p>
+                                ${escaparHTML(
+                                    pacienteActual.alertasClinicas
+                                )}
+                            </p>
+                        </section>
+                    `
+                    : ""
+            }
+
+            ${
+                pacienteActual.observaciones
+                    ? `
+                        <section class="print-observations">
+                            <h2>Observaciones generales</h2>
+                            <p>
+                                ${escaparHTML(
+                                    pacienteActual.observaciones
+                                )}
+                            </p>
+                        </section>
+                    `
+                    : ""
+            }
+
+            <section class="print-history">
+
+                <h2>Historial de evoluciones</h2>
+
+                ${evolucionesHTML}
+
+            </section>
+
+            <footer class="print-footer">
+
+                <span>
+                    Documento generado desde ClinicApp
+                </span>
+
+                <span>
+                    ${new Date().toLocaleDateString("es-AR")}
+                </span>
+
+            </footer>
+
+        </article>
+
+    `;
+
+    document.body.appendChild(printArea);
+
+    window.addEventListener(
+        "afterprint",
+        () => printArea.remove(),
+        { once:true }
+    );
+
+    requestAnimationFrame(() => {
+
+        window.print();
+
+    });
+
+}
+
+
+function crearCampoPDF(etiqueta, valor){
+
+    if(!valor) return "";
+
+    return `
+
+        <div class="print-text-field">
+
+            <span>${etiqueta}</span>
+
+            <p>
+                ${escaparHTML(String(valor))}
+            </p>
+
+        </div>
+
+    `;
+
+}
+
+
+function crearDatoPDF(etiqueta, valor){
+
+    if(
+        valor === null ||
+        valor === undefined ||
+        valor === ""
+    ){
+        return "";
+    }
+
+    return `
+
+        <div class="print-measurement">
+
+            <span>${etiqueta}</span>
+
+            <strong>
+                ${escaparHTML(String(valor))}
+            </strong>
+
+        </div>
+
+    `;
+
+}
+
+
+function crearDatoResumenPDF(etiqueta, valor){
+
+    if(
+        valor === null ||
+        valor === undefined ||
+        valor === ""
+    ){
+        return "";
+    }
+
+    return `
+
+        <span>
+            <strong>${etiqueta}:</strong>
+            ${escaparHTML(String(valor))}
+        </span>
 
     `;
 

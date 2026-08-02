@@ -1222,6 +1222,15 @@ async function verDetalleConsulta(id){
         </button>
 
         <button
+            class="secondary-button export-pdf-button"
+            type="button"
+            onclick="exportarEvolucionPDF('${consulta.id}')">
+
+            Exportar PDF
+
+        </button>
+
+        <button
         class="action-button"
         type="button"
         onclick="abrirEdicionEvolucion('${consulta.id}')">
@@ -1310,6 +1319,235 @@ async function eliminarPaciente(){
     mostrarListadoPrincipalPacientes();
 
     patientPanel.innerHTML = "";
+
+}
+
+async function exportarEvolucionPDF(id){
+
+    const consulta = await Database.cargarConsultaPorId(id);
+
+    if(!consulta){
+        alert("No se pudo cargar la evolución.");
+        return;
+    }
+
+    if(!pacienteActual){
+        alert("No hay un paciente seleccionado.");
+        return;
+    }
+
+    const perfil = perfilMedicoActual || {};
+
+    const profesional = [
+        perfil.nombre,
+        perfil.apellido
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    const tension =
+        consulta.ta_sistolica || consulta.ta_diastolica
+            ? `${consulta.ta_sistolica || "-"} / ${consulta.ta_diastolica || "-"}`
+            : null;
+
+    const printArea = document.createElement("div");
+
+    printArea.id = "printArea";
+
+    printArea.innerHTML = `
+
+        <article class="print-document">
+
+            <header class="print-header">
+
+                <div>
+                    <div class="print-brand">ClinicApp</div>
+                    <div class="print-document-title">
+                        Evolución clínica
+                    </div>
+                </div>
+
+                <div class="print-professional">
+
+                    ${
+                        profesional
+                            ? `<strong>${escaparHTML(profesional)}</strong>`
+                            : ""
+                    }
+
+                    ${
+                        perfil.especialidad
+                            ? `<span>${escaparHTML(perfil.especialidad)}</span>`
+                            : ""
+                    }
+
+                    ${
+                        perfil.matricula
+                            ? `<span>Matrícula: ${escaparHTML(perfil.matricula)}</span>`
+                            : ""
+                    }
+
+                </div>
+
+            </header>
+
+            <section class="print-patient-header">
+
+                <h1>
+                    ${escaparHTML(pacienteActual.nombreCompleto)}
+                </h1>
+
+                <div class="print-patient-summary">
+
+                    ${crearDatoResumenPDF("DNI", pacienteActual.dni)}
+
+                    ${crearDatoResumenPDF(
+                        "Edad",
+                        pacienteActual.edad !== null &&
+                        pacienteActual.edad !== undefined
+                            ? `${pacienteActual.edad} años`
+                            : null
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Obra social",
+                        pacienteActual.obraSocial
+                    )}
+
+                    ${crearDatoResumenPDF(
+                        "Afiliado",
+                        pacienteActual.nroAfiliado
+                    )}
+
+                </div>
+
+            </section>
+
+            <section class="print-evolution">
+
+                <div class="print-evolution-header">
+
+                    <h3>Evolución clínica</h3>
+
+                    <strong>
+                        ${formatearFecha(consulta.fecha)}
+                    </strong>
+
+                </div>
+
+                ${crearCampoPDF(
+                    "Motivo de consulta",
+                    consulta.motivo
+                )}
+
+                ${crearCampoPDF(
+                    "Evolución clínica",
+                    consulta.evolucion
+                )}
+
+                ${crearCampoPDF(
+                    "Diagnóstico o impresión clínica",
+                    consulta.diagnostico
+                )}
+
+                ${crearCampoPDF(
+                    "Conducta y plan",
+                    consulta.conducta
+                )}
+
+                <div class="print-measurements">
+
+                    ${crearDatoPDF(
+                        "Peso",
+                        consulta.peso
+                            ? `${consulta.peso} kg`
+                            : null
+                    )}
+
+                    ${crearDatoPDF(
+                        "Talla",
+                        consulta.talla
+                            ? `${consulta.talla} cm`
+                            : null
+                    )}
+
+                    ${crearDatoPDF(
+                        "IMC",
+                        consulta.imc
+                    )}
+
+                    ${crearDatoPDF(
+                        "Tensión arterial",
+                        tension
+                    )}
+
+                    ${crearDatoPDF(
+                        "Frecuencia cardíaca",
+                        consulta.frecuencia_cardiaca
+                            ? `${consulta.frecuencia_cardiaca} lpm`
+                            : null
+                    )}
+
+                    ${crearDatoPDF(
+                        "Temperatura",
+                        consulta.temperatura
+                            ? `${consulta.temperatura} °C`
+                            : null
+                    )}
+
+                    ${crearDatoPDF(
+                        "Saturación",
+                        consulta.saturacion
+                            ? `${consulta.saturacion} %`
+                            : null
+                    )}
+
+                </div>
+
+                ${
+                    consulta.proximo_control
+                        ? `
+                            <div class="print-next-control">
+                                Próximo control:
+                                <strong>
+                                    ${formatearFecha(
+                                        consulta.proximo_control
+                                    )}
+                                </strong>
+                            </div>
+                        `
+                        : ""
+                }
+
+            </section>
+
+            <footer class="print-footer">
+
+                <span>
+                    Documento generado desde ClinicApp
+                </span>
+
+                <span>
+                    ${new Date().toLocaleDateString("es-AR")}
+                </span>
+
+            </footer>
+
+        </article>
+
+    `;
+
+    document.body.appendChild(printArea);
+
+    window.addEventListener(
+        "afterprint",
+        () => printArea.remove(),
+        { once:true }
+    );
+
+    requestAnimationFrame(() => {
+        window.print();
+    });
 
 }
 

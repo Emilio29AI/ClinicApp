@@ -2217,3 +2217,106 @@ body{
     background:var(--clinic-blue-soft);
     box-shadow:inset 3px 0 0 var(--clinic-blue);
 }
+
+/* =====================================================
+   FICHA COMPLETA — ESTILO CLINICAPP
+===================================================== */
+
+#modalOverlay .patient-file-modal{
+    border:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+    box-shadow:0 24px 70px rgba(40,75,100,.16);
+}
+
+
+/* CABECERA */
+
+#modalOverlay .patient-file-modal .full-file-header{
+    padding:14px 58px 14px 16px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+}
+
+#modalOverlay .patient-file-modal .full-file-header h2{
+    margin:0;
+    color:var(--clinic-blue-dark);
+}
+
+#modalOverlay .patient-file-modal .full-file-header p{
+    margin:6px 0 0;
+    color:var(--clinic-blue-muted);
+}
+
+
+/* SECCIONES */
+
+#modalOverlay .patient-file-modal .full-file-section{
+    margin-top:12px;
+    padding:14px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:var(--clinic-blue-soft-2);
+}
+
+#modalOverlay .patient-file-modal .full-file-section h3{
+    margin:0 0 10px;
+    color:var(--clinic-blue-dark);
+}
+
+
+/* DATOS INDIVIDUALES */
+
+#modalOverlay .patient-file-modal .full-file-item{
+    border:1px solid #DCE8EF;
+    background:#FFFFFF;
+}
+
+#modalOverlay .patient-file-modal .full-file-item span{
+    color:var(--clinic-blue-muted);
+}
+
+#modalOverlay .patient-file-modal .full-file-item strong{
+    color:#2F4352;
+}
+
+
+/* ALERTAS */
+
+#modalOverlay .patient-file-modal .full-file-alerts-section{
+    background:#FFF9F9;
+    border-color:#EBCFCF;
+}
+
+#modalOverlay .patient-file-modal .full-file-alerts{
+    border:1px solid #E8CACA;
+    background:#FFF4F4;
+}
+
+
+/* OBSERVACIONES */
+
+#modalOverlay .patient-file-modal .full-file-observations-section{
+    background:var(--clinic-blue-soft-2);
+}
+
+#modalOverlay .patient-file-modal .full-file-observations{
+    padding:12px 14px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:11px;
+    background:#FFFFFF;
+    color:#344B5B;
+}
+
+
+/* BOTONES */
+
+#modalOverlay .patient-file-modal .modal-buttons{
+    border-top:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+}
+

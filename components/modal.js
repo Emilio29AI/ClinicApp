@@ -20,7 +20,7 @@ function abrirModalNuevoPaciente() {
 
             <div class="form-grid">
 
-                <div>s
+                <div>
                     <label>Apellido *</label>
                     <input id="apellido">
                 </div>

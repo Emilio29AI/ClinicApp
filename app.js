@@ -2204,10 +2204,16 @@ function renderizarGraficoEvolucion(
                     },
 
                     options:
-                        crearOpcionesGraficoEvolucion(
-                            "mmHg",
-                            true
-                        )
+    crearOpcionesGraficoEvolucion(
+        "mmHg",
+        true,
+        datosPresion.flatMap(
+            item => [
+                item.sistolica,
+                item.diastolica
+            ]
+        )
+    )
 
                 }
             );
@@ -2350,10 +2356,11 @@ function renderizarGraficoEvolucion(
                 },
 
                 options:
-                    crearOpcionesGraficoEvolucion(
-                        configuracion.unidad,
-                        false
-                    )
+    crearOpcionesGraficoEvolucion(
+        configuracion.unidad,
+        false,
+        datos.map(item => item.valor)
+    )
 
             }
         );
@@ -2362,8 +2369,15 @@ function renderizarGraficoEvolucion(
 
 function crearOpcionesGraficoEvolucion(
     unidad,
-    mostrarLeyenda
+    mostrarLeyenda,
+    valores
 ){
+
+    const limites =
+        calcularLimitesGrafico(
+            valores,
+            unidad
+        );
 
     return {
 
@@ -2436,6 +2450,10 @@ function crearOpcionesGraficoEvolucion(
 
                 beginAtZero:false,
 
+                suggestedMin:limites.min,
+
+                suggestedMax:limites.max,
+
                 grid:{
                     color:
                         "rgba(111, 142, 163, 0.14)"
@@ -2459,6 +2477,75 @@ function crearOpcionesGraficoEvolucion(
 
         }
 
+    };
+
+}
+
+function calcularLimitesGrafico(
+    valores,
+    unidad
+){
+
+    const numeros =
+        valores.filter(
+            valor => Number.isFinite(valor)
+        );
+
+    if(numeros.length === 0){
+
+        return {
+            min:undefined,
+            max:undefined
+        };
+
+    }
+
+    const minimo = Math.min(...numeros);
+    const maximo = Math.max(...numeros);
+    const rango = maximo - minimo;
+
+    const amplitudesMinimas = {
+
+        "kg":10,
+        "":5,
+        "mmHg":40,
+        "lpm":30,
+        "%":10,
+        "°C":4
+
+    };
+
+    const amplitudMinima =
+        amplitudesMinimas[unidad] || 10;
+
+    const amplitud =
+        Math.max(
+            rango * 1.8,
+            amplitudMinima
+        );
+
+    const centro =
+        (minimo + maximo) / 2;
+
+    let limiteMinimo =
+        centro - amplitud / 2;
+
+    let limiteMaximo =
+        centro + amplitud / 2;
+
+    if(unidad === "%"){
+
+        limiteMinimo =
+            Math.max(0, limiteMinimo);
+
+        limiteMaximo =
+            Math.min(100, limiteMaximo);
+
+    }
+
+    return {
+        min:limiteMinimo,
+        max:limiteMaximo
     };
 
 }

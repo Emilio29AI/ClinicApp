@@ -1417,7 +1417,7 @@ async function exportarEvolucionPDF(id, numeroConsulta){
                 <div>
                     <div class="print-brand">ClinicApp</div>
                     <div class="print-document-title">
-                        Consulta Nº${numeroConsulta}
+                        Consulta
                     </div>
                 </div>
 

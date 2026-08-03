@@ -1420,7 +1420,7 @@ async function exportarFichaPDF(){
 
                 <div>
                     <div class="print-brand">
-                        ClinicApp
+                    ✜ ClinicApp
                     </div>
 
                     <div class="print-document-title">

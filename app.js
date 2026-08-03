@@ -75,7 +75,7 @@ function renderPacientes(lista) {
 
             <div class="patient-name">
 
-                ${p.nombreCompleto}
+                ${escaparHTML(p.nombreCompleto)}
 
             </div>
 
@@ -87,7 +87,7 @@ function renderPacientes(lista) {
 
             <div class="patient-info">
 
-                ${p.obraSocial}
+                ${escaparHTML(p.obraSocial)}
 
             </div>
 
@@ -188,6 +188,7 @@ function crearMetricaEvolucion(etiqueta, valor){
 async function mostrarPaciente(p){
 
     pacienteActual = p;
+    const pacienteIdSolicitado = p.id;
 
     document
     .querySelectorAll(".patient-card")
@@ -207,13 +208,13 @@ async function mostrarPaciente(p){
     <div class="patient-header">
 
         <div>
-            <h1>${p.nombreCompleto}</h1>
+            <h1>${escaparHTML(p.nombreCompleto)}</h1>
 
             <div class="patient-summary">
 
             <span>
-                ${p.obraSocial || "Sin obra social"}
-                ${p.nroAfiliado ? ` · Afiliado: ${p.nroAfiliado}` : ""}
+                ${escaparHTML(p.obraSocial) || "Sin obra social"}
+                ${p.nroAfiliado ? ` · Afiliado: ${escaparHTML(p.nroAfiliado)}` : ""}
             </span>
 
             ${p.edad !== null && p.edad !== undefined? `<span>${p.edad} años</span>`: ""}
@@ -440,9 +441,13 @@ document
 .addEventListener("click", abrirModalNuevaEvolucion);
 
 
-await cargarArchivosPaciente();
+await cargarArchivosPaciente(pacienteIdSolicitado);
+
+if(pacienteActual?.id !== pacienteIdSolicitado) return;
 
 const consultas = await Database.cargarConsultas(p.id);
+
+if(pacienteActual?.id !== pacienteIdSolicitado) return;
 
 configurarGraficosEvolucion(consultas);
 
@@ -1171,12 +1176,17 @@ async function iniciar(){
 
 async function verDetalleConsulta(id, numeroConsulta){
 
-    const consultas =
-        await Database.cargarConsultas(pacienteActual.id);
+    const pacienteIdSolicitado = pacienteActual?.id;
 
-    const consulta = consultas.find(c => c.id === id);
+    if(!pacienteIdSolicitado) return;
 
-    if(!consulta) return;
+    const consulta = await Database.cargarConsultaPorId(id);
+
+    if(
+        !consulta ||
+        pacienteActual?.id !== pacienteIdSolicitado ||
+        consulta.paciente_id !== pacienteIdSolicitado
+    ) return;
 
     if(document.getElementById("modalOverlay")) return;
 
@@ -1703,74 +1713,16 @@ if(usarExportacionMovilPDF()){
     return;
 }
 
-/*
- * Exportación normal de escritorio.
- */
-const tituloAnterior = document.title;
-
-document.title =
-    `${nombrePaciente} - Consulta ${numeroConsulta}`;
-
-try{
-
-    await new Promise(resolve => {
-
-        requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-        });
-
-    });
-
-    window.print();
-
-}finally{
-
-    document.title = tituloAnterior;
-
-    setTimeout(() => {
-
-        if(printArea.isConnected){
-            printArea.remove();
-        }
-
-    }, 1000);
-
-}
-
-    const tituloOriginal = document.title;
-
-    const nombrePacientePDF =
-    pacienteActual.nombreCompleto
-        .replace(/[\\/:*?"<>|]/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    document.title =
-    `${nombrePacientePDF} - Consulta ${numeroConsulta}`;
-
-    document.body.appendChild(printArea);
-
-    window.addEventListener(
-    "afterprint",
-    () => {
-
-        printArea.remove();
-
-        document.title = tituloOriginal;
-
-    },
-    { once:true }
+imprimirConTitulo(
+    printArea,
+    `${nombrePaciente} - Consulta ${numeroConsulta}`
 );
 
-requestAnimationFrame(() => {
-    window.print();
-});
-
 }
 
-async function cargarArchivosPaciente(){
+async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
 
-    if(!pacienteActual) return;
+    if(!pacienteId) return;
 
     const contenedor =
         document.getElementById("patientFiles");
@@ -1786,9 +1738,9 @@ async function cargarArchivosPaciente(){
     try{
 
         const archivos =
-            await Database.cargarArchivos(
-                pacienteActual.id
-            );
+            await Database.cargarArchivos(pacienteId);
+
+        if(pacienteActual?.id !== pacienteId) return;
 
         const contador =
             document.getElementById("patientFilesCount");
@@ -1977,6 +1929,45 @@ function usarExportacionMovilPDF(){
 }
 
 
+function imprimirConTitulo(printArea, titulo){
+
+    const tituloOriginal = document.title;
+    let finalizado = false;
+
+    const finalizar = () => {
+
+        if(finalizado) return;
+        finalizado = true;
+
+        document.title = tituloOriginal;
+
+        if(printArea.isConnected){
+            printArea.remove();
+        }
+
+    };
+
+    document.title = titulo;
+
+    if(!printArea.isConnected){
+        document.body.appendChild(printArea);
+    }
+
+    window.addEventListener(
+        "afterprint",
+        finalizar,
+        { once:true }
+    );
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            window.print();
+        });
+    });
+
+}
+
+
 async function descargarPDFMovil(printArea, nombreArchivo){
 
     if(typeof html2pdf === "undefined"){
@@ -2009,147 +2000,6 @@ async function descargarPDFMovil(printArea, nombreArchivo){
         contenedor.appendChild(contenidoClonado);
         document.body.appendChild(contenedor);
 
-        contenedor.style.setProperty(
-            "display",
-            "block",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "visibility",
-            "visible",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "opacity",
-            "1",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "position",
-            "absolute",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "top",
-            "0",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "left",
-            "0",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "width",
-            "700px",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "height",
-            "auto",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "min-height",
-            "1px",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "overflow",
-            "visible",
-            "important"
-        );
-
-        contenedor.style.setProperty(
-            "background",
-            "#ffffff",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "display",
-            "block",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "visibility",
-            "visible",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "opacity",
-            "1",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "position",
-            "relative",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "width",
-            "700px",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "max-width",
-            "700px",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "box-sizing",
-            "border-box",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "height",
-            "auto",
-            "important"
-        );
-
-        contenidoClonado.style.setProperty(
-            "overflow",
-            "visible",
-            "important"
-        );
-
-        /*
-         * Se hace después de agregarlo al DOM.
-         */
-        contenidoClonado
-    .querySelectorAll("*")
-    .forEach(elemento => {
-
-        elemento.style.setProperty(
-            "visibility",
-            "visible",
-            "important"
-        );
-
-        elemento.style.setProperty(
-            "opacity",
-            "1",
-            "important"
-        );
-
-    });
-
         await new Promise(resolve => {
 
             requestAnimationFrame(() => {
@@ -2166,34 +2016,6 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
         const rect =
             contenidoClonado.getBoundingClientRect();
-
-        console.log(
-            "Estado PDF móvil:",
-            {
-                ancho:rect.width,
-                alto:rect.height,
-                scrollWidth:
-                    contenidoClonado.scrollWidth,
-                scrollHeight:
-                    contenidoClonado.scrollHeight,
-                display:
-                    getComputedStyle(
-                        contenidoClonado
-                    ).display,
-                visibility:
-                    getComputedStyle(
-                        contenidoClonado
-                    ).visibility,
-                opacity:
-                    getComputedStyle(
-                        contenidoClonado
-                    ).opacity,
-                texto:
-                    contenidoClonado.innerText
-                        .trim()
-                        .slice(0, 300)
-            }
-        );
 
         if(
             rect.width === 0 ||
@@ -2232,7 +2054,7 @@ async function descargarPDFMovil(printArea, nombreArchivo){
                 useCORS:true,
                 allowTaint:false,
                 backgroundColor:"#ffffff",
-                logging:true,
+                logging:false,
                 scrollX:0,
                 scrollY:0,
                 width:700,
@@ -2247,11 +2069,10 @@ async function descargarPDFMovil(printArea, nombreArchivo){
             },
 
             pagebreak:{
-                mode:[
-                    "css",
-                    "legacy"
-                ]
-            }
+            mode:["css","legacy"],
+            avoid:[".print-evolution",".print-evolution-header",".print-measurements",
+            ".print-measurement"]
+}
 
         };
 

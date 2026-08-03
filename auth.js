@@ -243,31 +243,34 @@ async function registrarMedico(){
 }
 
 
-document
-    .getElementById("loginButton")
-    .addEventListener("click", iniciarSesion);
+if(loginView && registerView){
 
+    document
+        .getElementById("loginButton")
+        .addEventListener("click", iniciarSesion);
 
-document
-    .getElementById("registerButton")
-    .addEventListener("click", registrarMedico);
+    document
+        .getElementById("registerButton")
+        .addEventListener("click", registrarMedico);
 
+    document.addEventListener("keydown", event => {
 
-document.addEventListener("keydown", event => {
+        if(event.key !== "Enter") return;
 
-    if(event.key !== "Enter") return;
+        if(!loginView.classList.contains("hidden")){
 
-    if(!loginView.classList.contains("hidden")){
+            iniciarSesion();
 
-        iniciarSesion();
+        }else{
 
-    }else{
+            registrarMedico();
 
-        registrarMedico();
+        }
 
-    }
+    });
 
-});
+    comprobarSesionExistente();
+}
 
 async function solicitarRecuperacionPassword(){
 
@@ -302,16 +305,11 @@ async function solicitarRecuperacionPassword(){
                 window.location.href
             ).href;
 
-        console.log("Enviando recuperación a:", email);
-        console.log("Redirección:", redirectTo);
-
-        const { data, error } =
-            await supabaseClient.auth.resetPasswordForEmail(
+        const { error } =
+            await authSupabaseClient.auth.resetPasswordForEmail(
                 email,
                 { redirectTo }
             );
-
-        console.log("Respuesta Supabase:", data, error);
 
         if(error){
             throw error;
@@ -371,10 +369,10 @@ async function guardarNuevaPassword(event){
 
     message.textContent = "";
 
-    if(password.length < 6){
+    if(password.length < 8){
 
         message.textContent =
-            "La contraseña debe tener al menos 6 caracteres.";
+            "La contraseña debe tener al menos 8 caracteres.";
 
         return;
     }
@@ -391,7 +389,7 @@ async function guardarNuevaPassword(event){
     button.textContent = "Guardando...";
 
     const { error } =
-        await supabaseClient.auth.updateUser({
+        await authSupabaseClient.auth.updateUser({
             password
         });
 
@@ -413,7 +411,7 @@ async function guardarNuevaPassword(event){
     message.textContent =
         "Contraseña actualizada correctamente.";
 
-    await supabaseClient.auth.signOut();
+    await authSupabaseClient.auth.signOut();
 
     setTimeout(() => {
 
@@ -423,4 +421,3 @@ async function guardarNuevaPassword(event){
 
 }
 
-comprobarSesionExistente();

@@ -8,7 +8,13 @@ function calcularEdad(fechaNacimiento){
     if(!fechaNacimiento) return "-";
 
     const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
+    const [anio, mes, dia] = fechaNacimiento
+        .split("-")
+        .map(Number);
+
+    const nacimiento = new Date(anio, mes - 1, dia);
+
+    if(Number.isNaN(nacimiento.getTime())) return "-";
 
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
 
@@ -39,14 +45,30 @@ const Database = {
             return [];
         }
 
-        this.pacientes = await Promise.all(data.map(async p => {
+        const { data: fechasConsultas, error: fechasError } =
+            await supabaseClient
+                .from("consultas")
+                .select("paciente_id, fecha")
+                .order("fecha", { ascending: false });
 
-            const { data: ultima } = await supabaseClient
-            .from("consultas")
-            .select("fecha")
-            .eq("paciente_id", p.id)
-            .order("fecha", { ascending: false })
-            .limit(1);
+        if(fechasError){
+            console.error(fechasError);
+        }
+
+        const ultimaConsultaPorPaciente = new Map();
+
+        (fechasConsultas || []).forEach(consulta => {
+
+            if(!ultimaConsultaPorPaciente.has(consulta.paciente_id)){
+                ultimaConsultaPorPaciente.set(
+                    consulta.paciente_id,
+                    consulta.fecha
+                );
+            }
+
+        });
+
+        this.pacientes = data.map(p => {
 
         return {
 
@@ -101,13 +123,12 @@ const Database = {
 
     updatedAt: p.updated_at,
 
-    ultimaConsulta: ultima?.length
-        ? ultima[0].fecha
-        : null
+    ultimaConsulta:
+        ultimaConsultaPorPaciente.get(p.id) || null
 
 };
 
-}));
+});
 
         return this.pacientes;
 

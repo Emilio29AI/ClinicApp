@@ -1097,7 +1097,7 @@ function abrirFichaCompletaPaciente(){
             <div class="full-file-header">
 
                 <div>
-                    <h2>${p.nombreCompleto}</h2>
+                    <h2>${escaparHTML(p.nombreCompleto)}</h2>
                     <p>Ficha completa del paciente</p>
                 </div>
 
@@ -1570,36 +1570,16 @@ async function exportarFichaPDF(){
 }
 
 
-/* EXPORTACIÓN EN PC */
-
-const tituloOriginal = document.title;
-
 const nombrePacientePDF =
     pacienteActual.nombreCompleto
         .replace(/[\\/:*?"<>|]/g, "")
         .replace(/\s+/g, " ")
         .trim();
 
-document.title =
-    `Historia clínica - ${nombrePacientePDF}`;
-
-document.body.appendChild(printArea);
-
-window.addEventListener(
-    "afterprint",
-    () => {
-
-        printArea.remove();
-
-        document.title = tituloOriginal;
-
-    },
-    { once:true }
+imprimirConTitulo(
+    printArea,
+    `Historia clínica - ${nombrePacientePDF}`
 );
-
-requestAnimationFrame(() => {
-    window.print();
-});
 
 }
 

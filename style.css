@@ -2393,6 +2393,24 @@ body{
         margin:14mm;
     }
 
+    html,
+    body{
+        margin:0 !important;
+        padding:0 !important;
+        min-height:0 !important;
+        background:#FFFFFF !important;
+    }
+
+    body > *:not(#printArea){
+        display:none !important;
+    }
+
+    body::before,
+    body::after{
+        display:none !important;
+        content:none !important;
+    }
+
     body *{
         visibility:hidden !important;
     }
@@ -2404,9 +2422,14 @@ body{
 
     #printArea{
         display:block;
-        position:absolute;
-        inset:0;
+        position:static;
+        inset:auto;
         width:100%;
+        min-height:0;
+        margin:0;
+        padding:0;
+        border:0;
+        box-shadow:none;
         background:#FFFFFF;
         color:#1F2937;
         font-family:Arial, sans-serif;
@@ -3501,74 +3524,6 @@ body:not(.auth-page) .floating-button{
 body:not(.auth-page) .floating-button:hover{
     box-shadow:0 13px 32px rgba(38,91,151,.32);
     transform:translateY(-2px);
-}
-
-/* =====================================================
-   GENERACIÓN DE PDF EN CELULAR
-===================================================== */
-
-.mobile-pdf-container{
-    position:absolute;
-    top:0;
-    left:0;
-    width:700px;
-    min-height:990px;
-    padding:28px;
-    box-sizing:border-box;
-    overflow:visible;
-    background:#FFFFFF;
-    color:#1F2937;
-    font-family:Arial, sans-serif;
-    opacity:1;
-    pointer-events:none;
-    z-index:999999;
-}
-
-.mobile-pdf-container .print-document{
-    width:100%;
-}
-
-.mobile-pdf-container .print-evolution{
-    break-inside:avoid;
-    page-break-inside:avoid;
-}
-
-.mobile-pdf-container .print-header,
-.mobile-pdf-container .print-patient-header,
-.mobile-pdf-container .print-alerts,
-.mobile-pdf-container .print-observations,
-.mobile-pdf-container .print-evolution,
-.mobile-pdf-container .print-footer{
-    visibility:visible;
-}
-
-.mobile-pdf-container,
-.mobile-pdf-container *{
-    visibility:visible !important;
-}
-
-.mobile-pdf-container .print-document{
-    display:block !important;
-    width:100%;
-    background:#FFFFFF;
-}
-
-.mobile-pdf-container .print-evolution{
-    break-inside:auto;
-    page-break-inside:auto;
-}
-
-.mobile-pdf-wrapper{
-    position:absolute;
-    top:0;
-    left:0;
-    width:700px;
-    padding:0;
-    margin:0;
-    overflow:visible;
-    background:#FFFFFF;
-    pointer-events:none;
-    z-index:999999;
 }
 
 /* =====================================================

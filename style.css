@@ -59,7 +59,7 @@ body{
 .logo-subtitle{
     color:var(--muted);
     font-size:13px;
-    font-weight:800;
+    font-weight:500;
     line-height:1.2;
 }
 

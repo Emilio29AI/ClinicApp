@@ -289,6 +289,17 @@ const Database = {
     
     async agregarConsulta(datos){
 
+    const disponibilidad =
+        await this.validarDisponibilidadTurno({
+            fecha: datos.proximoControl,
+            hora: datos.proximoControlHora
+        });
+
+    if(!disponibilidad.disponible){
+        alert(disponibilidad.mensaje);
+        return null;
+    }
+
     const { data, error } = await supabaseClient
         .from("consultas")
         .insert({
@@ -347,6 +358,8 @@ const Database = {
 
     }
 
+    await this.sincronizarTurnoDesdeConsulta(data);
+
     return data;
 
 },
@@ -377,19 +390,17 @@ const Database = {
 
     async cargarProximosTurnos(){
 
-    const hoy =
-        new Date().toLocaleDateString(
-            "en-CA"
-        );
+        const hoy = new Date().toLocaleDateString("en-CA");
 
-    const { data, error } =
-        await supabaseClient
-            .from("consultas")
+        const { data, error } = await supabaseClient
+            .from("turnos")
             .select(`
                 id,
                 paciente_id,
-                proximo_control,
-                proximo_control_hora,
+                fecha,
+                hora,
+                observaciones,
+                consulta_origen_id,
                 pacientes (
                     id,
                     apellido,
@@ -398,75 +409,34 @@ const Database = {
                     obra_social
                 )
             `)
-            .not(
-                "proximo_control",
-                "is",
-                null
-            )
-            .gte(
-                "proximo_control",
-                hoy
-            )
-            .order(
-                "proximo_control",
-                { ascending:true }
-            )
-            .order(
-                "proximo_control_hora",
-                {
-                    ascending:true,
-                    nullsFirst:false
-                }
-            );
+            .gte("fecha", hoy)
+            .order("fecha", { ascending:true })
+            .order("hora", {
+                ascending:true,
+                nullsFirst:false
+            });
 
-    if(error){
+        if(error){
+            console.error("Error al cargar próximos turnos:", error);
+            return [];
+        }
 
-        console.error(
-            "Error al cargar próximos turnos:",
-            error
-        );
-
-        return [];
-
-    }
-
-    return (data || []).map(turno => ({
-
-        consultaId:
-            turno.id,
-
-        pacienteId:
-            turno.paciente_id,
-
-        fecha:
-            turno.proximo_control,
-
-        hora:
-            turno.proximo_control_hora
-                ? turno.proximo_control_hora.slice(0, 5)
-                : null,
-
-        apellido:
-            turno.pacientes?.apellido || "",
-
-        nombre:
-            turno.pacientes?.nombre || "",
-
-        nombreCompleto:
-            [
+        return (data || []).map(turno => ({
+            turnoId: turno.id,
+            consultaId: turno.consulta_origen_id || null,
+            pacienteId: turno.paciente_id,
+            fecha: turno.fecha,
+            hora: turno.hora ? turno.hora.slice(0, 5) : null,
+            observaciones: turno.observaciones || "",
+            apellido: turno.pacientes?.apellido || "",
+            nombre: turno.pacientes?.nombre || "",
+            nombreCompleto: [
                 turno.pacientes?.apellido,
                 turno.pacientes?.nombre
-            ]
-                .filter(Boolean)
-                .join(", "),
-
-        telefono:
-            turno.pacientes?.telefono || "",
-
-        obraSocial:
-            turno.pacientes?.obra_social || ""
-
-    }));
+            ].filter(Boolean).join(", "),
+            telefono: turno.pacientes?.telefono || "",
+            obraSocial: turno.pacientes?.obra_social || ""
+        }));
 
     },  
 
@@ -537,6 +507,298 @@ async actualizarPerfilMedico(datos) {
     return data;
 },
 
+
+    async validarDisponibilidadTurno({
+        fecha,
+        hora,
+        turnoIdExcluir = null,
+        consultaOrigenIdExcluir = null
+    }){
+
+        if(!fecha || !hora){
+            return { disponible:true };
+        }
+
+        const DURACION_CONSULTA_MINUTOS = 55;
+        const MARGEN_ENTRE_TURNOS_MINUTOS = 5;
+        const BLOQUE_TOTAL_MINUTOS =
+            DURACION_CONSULTA_MINUTOS + MARGEN_ENTRE_TURNOS_MINUTOS;
+
+        const convertirHoraAMinutos = valor => {
+            const [horas, minutos] = String(valor).slice(0, 5).split(":").map(Number);
+            return (horas * 60) + minutos;
+        };
+
+        let consulta = supabaseClient
+            .from("turnos")
+            .select(`
+                id,
+                fecha,
+                hora,
+                consulta_origen_id,
+                pacientes (
+                    apellido,
+                    nombre
+                )
+            `)
+            .eq("fecha", fecha)
+            .not("hora", "is", null);
+
+        const { data, error } = await consulta;
+
+        if(error){
+            console.error("Error al validar disponibilidad del turno:", error);
+            return {
+                disponible:false,
+                error:true,
+                mensaje:"No se pudo comprobar la disponibilidad del horario."
+            };
+        }
+
+        const inicioNuevo = convertirHoraAMinutos(hora);
+        const finNuevo = inicioNuevo + BLOQUE_TOTAL_MINUTOS;
+
+        const turnosComparables = (data || []).filter(turno => {
+            if(turnoIdExcluir && turno.id === turnoIdExcluir){
+                return false;
+            }
+
+            if(
+                consultaOrigenIdExcluir &&
+                turno.consulta_origen_id === consultaOrigenIdExcluir
+            ){
+                return false;
+            }
+
+            return true;
+        });
+
+        const conflicto = turnosComparables.find(turno => {
+            const inicioExistente = convertirHoraAMinutos(turno.hora);
+            const finExistente = inicioExistente + BLOQUE_TOTAL_MINUTOS;
+
+            return inicioNuevo < finExistente &&
+                finNuevo > inicioExistente;
+        });
+
+        if(!conflicto){
+            return { disponible:true };
+        }
+
+        const inicioExistente = convertirHoraAMinutos(conflicto.hora);
+        const proximoDisponibleMinutos = inicioExistente + BLOQUE_TOTAL_MINUTOS;
+        const horasDisponibles = String(Math.floor(proximoDisponibleMinutos / 60) % 24).padStart(2, "0");
+        const minutosDisponibles = String(proximoDisponibleMinutos % 60).padStart(2, "0");
+        const nombrePaciente = [
+            conflicto.pacientes?.apellido,
+            conflicto.pacientes?.nombre
+        ].filter(Boolean).join(", ") || "otro paciente";
+        const horaConflicto = String(conflicto.hora).slice(0, 5);
+
+        return {
+            disponible:false,
+            conflicto,
+            mensaje:
+                `Ese horario no está disponible.\n\n` +
+                `El turno de ${nombrePaciente} comienza a las ${horaConflicto} ` +
+                `y bloquea ${BLOQUE_TOTAL_MINUTOS} minutos.\n` +
+                `El siguiente horario disponible después de ese turno es ${horasDisponibles}:${minutosDisponibles}.`
+        };
+
+    },
+
+    async agregarTurno(datos){
+
+        const { data: { user } } =
+            await supabaseClient.auth.getUser();
+
+        if(!user){
+            alert("No hay un médico autenticado.");
+            return null;
+        }
+
+        const disponibilidad =
+            await this.validarDisponibilidadTurno({
+                fecha: datos.fecha,
+                hora: datos.hora
+            });
+
+        if(!disponibilidad.disponible){
+            alert(disponibilidad.mensaje);
+            return null;
+        }
+
+        const { data, error } = await supabaseClient
+            .from("turnos")
+            .insert({
+                medico_id: user.id,
+                paciente_id: datos.pacienteId,
+                fecha: datos.fecha,
+                hora: datos.hora || null,
+                observaciones: datos.observaciones || null,
+                consulta_origen_id: datos.consultaOrigenId || null
+            })
+            .select()
+            .single();
+
+        if(error){
+            console.error("Error al guardar el turno:", error);
+            alert("No se pudo guardar el turno: " + error.message);
+            return null;
+        }
+
+        return data;
+
+    },
+
+    async cargarTurnoPorId(id){
+
+        const { data, error } = await supabaseClient
+            .from("turnos")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+        if(error){
+            console.error("Error al cargar el turno:", error);
+            alert("No se pudo cargar el turno: " + error.message);
+            return null;
+        }
+
+        return data;
+
+    },
+
+    async actualizarTurno(id, datos){
+
+        const turnoActual = await this.cargarTurnoPorId(id);
+        if(!turnoActual) return null;
+
+        const disponibilidad =
+            await this.validarDisponibilidadTurno({
+                fecha: datos.fecha,
+                hora: datos.hora,
+                turnoIdExcluir: id
+            });
+
+        if(!disponibilidad.disponible){
+            alert(disponibilidad.mensaje);
+            return null;
+        }
+
+        const { data, error } = await supabaseClient
+            .from("turnos")
+            .update({
+                paciente_id: datos.pacienteId,
+                fecha: datos.fecha,
+                hora: datos.hora || null,
+                observaciones: datos.observaciones || null
+            })
+            .eq("id", id)
+            .select()
+            .single();
+
+        if(error){
+            console.error("Error al actualizar el turno:", error);
+            alert("No se pudo actualizar el turno: " + error.message);
+            return null;
+        }
+
+        if(turnoActual.consulta_origen_id){
+            const { error: consultaError } = await supabaseClient
+                .from("consultas")
+                .update({
+                    proximo_control: datos.fecha,
+                    proximo_control_hora: datos.hora || null
+                })
+                .eq("id", turnoActual.consulta_origen_id);
+
+            if(consultaError){
+                console.error("Error al sincronizar la consulta:", consultaError);
+                alert("El turno se actualizó, pero no se pudo sincronizar la consulta de origen.");
+            }
+        }
+
+        return data;
+
+    },
+
+    async eliminarTurno(id){
+
+        const turnoActual = await this.cargarTurnoPorId(id);
+        if(!turnoActual) return false;
+
+        if(turnoActual.consulta_origen_id){
+            const { error: consultaError } = await supabaseClient
+                .from("consultas")
+                .update({
+                    proximo_control: null,
+                    proximo_control_hora: null
+                })
+                .eq("id", turnoActual.consulta_origen_id);
+
+            if(consultaError){
+                console.error("Error al limpiar la consulta de origen:", consultaError);
+                alert("No se pudo desvincular el turno de la consulta.");
+                return false;
+            }
+        }
+
+        const { error } = await supabaseClient
+            .from("turnos")
+            .delete()
+            .eq("id", id);
+
+        if(error){
+            console.error("Error al eliminar el turno:", error);
+            alert("No se pudo eliminar el turno: " + error.message);
+            return false;
+        }
+
+        return true;
+
+    },
+
+    async sincronizarTurnoDesdeConsulta(consulta){
+
+        if(!consulta?.id) return;
+
+        if(!consulta.proximo_control){
+            const { error } = await supabaseClient
+                .from("turnos")
+                .delete()
+                .eq("consulta_origen_id", consulta.id);
+
+            if(error){
+                console.error("Error al eliminar el turno vinculado:", error);
+            }
+            return;
+        }
+
+        const { data: { user } } =
+            await supabaseClient.auth.getUser();
+
+        if(!user) return;
+
+        const { error } = await supabaseClient
+            .from("turnos")
+            .upsert({
+                medico_id: user.id,
+                paciente_id: consulta.paciente_id,
+                fecha: consulta.proximo_control,
+                hora: consulta.proximo_control_hora || null,
+                consulta_origen_id: consulta.id
+            }, {
+                onConflict: "consulta_origen_id"
+            });
+
+        if(error){
+            console.error("Error al sincronizar el próximo turno:", error);
+            alert("La consulta se guardó, pero no se pudo actualizar la Agenda.");
+        }
+
+    },
+
 async cargarConsultaPorId(id) {
 
     const { data, error } = await supabaseClient
@@ -565,6 +827,18 @@ async cargarConsultaPorId(id) {
 
 
 async actualizarConsulta(id, datos) {
+
+    const disponibilidad =
+        await this.validarDisponibilidadTurno({
+            fecha: datos.proximoControl,
+            hora: datos.proximoControlHora,
+            consultaOrigenIdExcluir: id
+        });
+
+    if(!disponibilidad.disponible){
+        alert(disponibilidad.mensaje);
+        return null;
+    }
 
     const { data, error } = await supabaseClient
         .from("consultas")
@@ -624,6 +898,8 @@ async actualizarConsulta(id, datos) {
 
         return null;
     }
+
+    await this.sincronizarTurnoDesdeConsulta(data);
 
     return data;
 },

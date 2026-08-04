@@ -4137,3 +4137,210 @@ body:not(.auth-page) .sidebar-footer button:hover{
     }
 
 }
+
+/* =====================================================
+   AGENDA — GESTIÓN DE TURNOS
+===================================================== */
+
+.agenda-home-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+}
+
+.agenda-new-appointment-button{
+    flex:0 0 auto;
+}
+
+.appointment-actions{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:7px;
+}
+
+.appointment-icon-button{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:32px;
+    height:32px;
+    padding:0;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:9px;
+    background:#FFFFFF;
+    color:var(--clinic-blue-dark);
+    font-size:17px;
+    line-height:1;
+    cursor:pointer;
+}
+
+.appointment-icon-button:hover{
+    border-color:#8CB5CE;
+    background:var(--clinic-blue-soft);
+}
+
+.appointment-icon-button.is-danger{
+    color:#A64A4A;
+}
+
+.appointment-icon-button.is-danger:hover{
+    border-color:#E2B7B7;
+    background:#FFF4F4;
+}
+
+.today-appointment-patient small,
+.week-appointment-patient small,
+.next-appointment-patient small{
+    display:block;
+    margin-top:4px;
+    color:var(--clinic-blue-muted);
+    font-size:11px;
+}
+
+.today-appointment-item{
+    grid-template-columns:90px minmax(0, 1fr) auto auto;
+}
+
+.week-appointment-item{
+    grid-template-columns:90px minmax(0, 1fr) auto;
+}
+
+.turno-modal{
+    width:min(560px, calc(100vw - 30px));
+}
+
+.turno-modal .modal-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:22px;
+}
+
+.turno-modal .modal-header h2{
+    margin:0;
+}
+
+.turno-modal .modal-header p{
+    margin:5px 0 0;
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+}
+
+.modal-close-button{
+    width:34px;
+    height:34px;
+    padding:0;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:10px;
+    background:#FFFFFF;
+    color:var(--clinic-blue-dark);
+    font-size:21px;
+    cursor:pointer;
+}
+
+.turno-form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+}
+
+.turno-form-field{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+}
+
+.turno-form-field.is-full{
+    grid-column:1 / -1;
+}
+
+.turno-form-field label{
+    color:var(--clinic-blue-dark);
+    font-size:13px;
+    font-weight:700;
+}
+
+.turno-form-field input,
+.turno-form-field select,
+.turno-form-field textarea{
+    width:100%;
+    box-sizing:border-box;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:10px;
+    background:#FFFFFF;
+    padding:11px 12px;
+    color:#2F4352;
+    font:inherit;
+}
+
+.turno-form-field textarea{
+    resize:vertical;
+}
+
+.patient-page-navigation{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    margin:0 0 12px;
+}
+
+.agenda-back-button{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:8px 12px;
+    border-color:transparent;
+    background:transparent;
+    color:var(--clinic-blue-dark);
+    font-size:13px;
+    font-weight:700;
+    white-space:nowrap;
+    box-shadow:none;
+}
+
+.agenda-back-button:hover{
+    border-color:var(--clinic-blue-border);
+    background:var(--clinic-blue-soft-2);
+    transform:translateX(-1px);
+}
+
+@media (max-width:760px){
+
+    .agenda-home-header{
+        flex-direction:column;
+    }
+
+    .agenda-new-appointment-button{
+        width:100%;
+    }
+
+    .today-appointment-item,
+    .week-appointment-item{
+        grid-template-columns:70px minmax(0, 1fr);
+    }
+
+    .today-appointment-badge{
+        justify-self:start;
+    }
+
+    .appointment-actions{
+        grid-column:1 / -1;
+        justify-content:flex-start;
+    }
+
+    .appointment-open-button{
+        flex:1;
+    }
+
+    .turno-form-grid{
+        grid-template-columns:1fr;
+    }
+
+    .turno-form-field.is-full{
+        grid-column:auto;
+    }
+
+}

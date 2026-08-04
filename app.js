@@ -398,383 +398,411 @@ function abrirPacienteDesdeAgenda(pacienteId){
 }
 
 
+function crearAccionesTurno(turno){
+
+    return `
+        <div class="appointment-actions">
+            <button
+                class="secondary-button appointment-open-button"
+                type="button"
+                onclick="abrirPacienteDesdeAgenda('${turno.pacienteId}')">
+                Ver paciente
+            </button>
+
+            <button
+                class="appointment-icon-button"
+                type="button"
+                title="Editar turno"
+                aria-label="Editar turno"
+                onclick="abrirModalEditarTurno('${turno.turnoId}')">
+                ✎
+            </button>
+
+            <button
+                class="appointment-icon-button is-danger"
+                type="button"
+                title="Eliminar turno"
+                aria-label="Eliminar turno"
+                onclick="eliminarTurnoDesdeAgenda('${turno.turnoId}')">
+                ×
+            </button>
+        </div>
+    `;
+
+}
+
+
+async function recargarAgenda(){
+
+    proximosTurnos = await Database.cargarProximosTurnos();
+    mostrarAgendaInicial();
+
+}
+
+
+function abrirModalNuevoTurno(){
+    abrirModalTurno();
+}
+
+
+async function abrirModalEditarTurno(turnoId){
+
+    const turno = await Database.cargarTurnoPorId(turnoId);
+    if(!turno) return;
+
+    abrirModalTurno(turno);
+
+}
+
+
+function abrirModalTurno(turno = null){
+
+    cerrarModalTurno();
+
+    const overlay = document.createElement("div");
+    overlay.id = "turnoModalOverlay";
+    overlay.className = "modal-overlay";
+
+    const opcionesPacientes = pacientes
+        .slice()
+        .sort((a, b) =>
+            a.nombreCompleto.localeCompare(b.nombreCompleto, "es")
+        )
+        .map(paciente => `
+            <option
+                value="${escaparAtributo(paciente.id)}"
+                ${turno?.paciente_id === paciente.id ? "selected" : ""}>
+                ${escaparHTML(paciente.nombreCompleto)}
+            </option>
+        `)
+        .join("");
+
+    overlay.innerHTML = `
+        <div class="modal turno-modal">
+            <div class="modal-header">
+                <div>
+                    <h2>${turno ? "Editar turno" : "Nuevo turno"}</h2>
+                    <p>Programá una cita directamente desde la Agenda.</p>
+                </div>
+
+                <button
+                    class="modal-close-button"
+                    type="button"
+                    aria-label="Cerrar"
+                    onclick="cerrarModalTurno()">
+                    ×
+                </button>
+            </div>
+
+            <div class="turno-form-grid">
+                <div class="turno-form-field is-full">
+                    <label for="turnoPaciente">Paciente</label>
+                    <select id="turnoPaciente" ${turno?.consulta_origen_id ? "disabled" : ""}>
+                        <option value="">Seleccionar paciente</option>
+                        ${opcionesPacientes}
+                    </select>
+                    ${turno?.consulta_origen_id ? `<small>El paciente no puede cambiarse porque el turno está vinculado a una consulta.</small>` : ""}
+                </div>
+
+                <div class="turno-form-field">
+                    <label for="turnoFecha">Fecha</label>
+                    <input
+                        id="turnoFecha"
+                        type="date"
+                        value="${escaparAtributo(turno?.fecha || obtenerFechaLocalISO())}">
+                </div>
+
+                <div class="turno-form-field">
+                    <label for="turnoHora">Hora</label>
+                    <input
+                        id="turnoHora"
+                        type="time"
+                        value="${escaparAtributo(turno?.hora ? turno.hora.slice(0, 5) : "")}">
+                </div>
+
+                <div class="turno-form-field is-full">
+                    <label for="turnoObservaciones">Observaciones</label>
+                    <textarea
+                        id="turnoObservaciones"
+                        rows="3"
+                        placeholder="Dato breve relacionado con el turno">${escaparHTML(turno?.observaciones || "")}</textarea>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button
+                    class="secondary-button"
+                    type="button"
+                    onclick="cerrarModalTurno()">
+                    Cancelar
+                </button>
+
+                <button
+                    id="guardarTurnoButton"
+                    class="action-button"
+                    type="button"
+                    onclick="guardarTurnoDesdeAgenda('${turno?.id || ""}')">
+                    ${turno ? "Actualizar turno" : "Guardar turno"}
+                </button>
+            </div>
+        </div>
+    `;
+
+    overlay.addEventListener("click", evento => {
+        if(evento.target === overlay){
+            cerrarModalTurno();
+        }
+    });
+
+    document.body.appendChild(overlay);
+
+}
+
+
+function cerrarModalTurno(){
+    document.getElementById("turnoModalOverlay")?.remove();
+}
+
+
+async function guardarTurnoDesdeAgenda(turnoId = ""){
+
+    const pacienteId =
+        document.getElementById("turnoPaciente")?.value || "";
+
+    const fecha =
+        document.getElementById("turnoFecha")?.value || "";
+
+    const hora =
+        document.getElementById("turnoHora")?.value || null;
+
+    const observaciones =
+        document.getElementById("turnoObservaciones")?.value.trim() || null;
+
+    if(!pacienteId || !fecha){
+        alert("Seleccioná un paciente y una fecha.");
+        return;
+    }
+
+    const boton = document.getElementById("guardarTurnoButton");
+    if(boton){
+        boton.disabled = true;
+        boton.textContent = turnoId ? "Actualizando..." : "Guardando...";
+    }
+
+    const datos = {
+        pacienteId,
+        fecha,
+        hora,
+        observaciones
+    };
+
+    try{
+
+        const guardado = turnoId
+            ? await Database.actualizarTurno(turnoId, datos)
+            : await Database.agregarTurno(datos);
+
+        if(!guardado){
+            return;
+        }
+
+        cerrarModalTurno();
+        await recargarAgenda();
+
+    }catch(error){
+
+        console.error("Error inesperado al guardar el turno:", error);
+        alert("No se pudo guardar el turno: " + error.message);
+
+    }finally{
+
+        const botonActual = document.getElementById("guardarTurnoButton");
+
+        if(botonActual){
+            botonActual.disabled = false;
+            botonActual.textContent = turnoId
+                ? "Actualizar turno"
+                : "Guardar turno";
+        }
+
+    }
+
+}
+
+
+async function eliminarTurnoDesdeAgenda(turnoId){
+
+    const turno = proximosTurnos.find(item => item.turnoId === turnoId);
+    const nombre = turno?.nombreCompleto || "este paciente";
+
+    if(!confirm(`¿Eliminar el turno de ${nombre}?`)) return;
+
+    const eliminado = await Database.eliminarTurno(turnoId);
+    if(!eliminado) return;
+
+    await recargarAgenda();
+
+}
+
+
 function mostrarAgendaInicial(){
 
     pacienteActual = null;
 
     document
         .querySelectorAll(".patient-card")
-        .forEach(card => {
-            card.classList.remove("active");
-        });
+        .forEach(card => card.classList.remove("active"));
 
-    const proximoTurno =
-        obtenerProximoTurno();
-    
-    const turnosHoy =
-    obtenerTurnosDeHoy();
+    const proximoTurno = obtenerProximoTurno();
+    const turnosHoy = obtenerTurnosDeHoy();
+    const turnosSemana = obtenerTurnosDeLaSemana();
 
-    const turnosSemana =
-    obtenerTurnosDeLaSemana();
+    const encabezadoAgenda = `
+        <div class="agenda-home-header">
+            <div>
+                <h1>Agenda</h1>
+                <p>Resumen de los próximos turnos.</p>
+            </div>
+
+            <button
+                class="action-button agenda-new-appointment-button"
+                type="button"
+                onclick="abrirModalNuevoTurno()">
+                + Nuevo turno
+            </button>
+        </div>
+    `;
 
     if(!proximoTurno){
-
         patientPanel.innerHTML = `
-
             <section class="agenda-home">
-
-                <div class="agenda-home-header">
-
-                    <div>
-                        <h1>Agenda</h1>
-                        <p>
-                            Resumen de los próximos turnos.
-                        </p>
-                    </div>
-
-                </div>
+                ${encabezadoAgenda}
 
                 <div class="agenda-empty">
-
-                    <strong>
-                        No hay próximos turnos programados.
-                    </strong>
-
+                    <strong>No hay próximos turnos programados.</strong>
                     <span>
-                        Los próximos controles aparecerán
-                        automáticamente en esta pantalla.
+                        Podés crear uno con el botón “Nuevo turno” o desde
+                        el campo Próximo turno de una consulta.
                     </span>
-
                 </div>
-
             </section>
-
         `;
-
         return;
     }
 
-    const fechaVisible =
-        obtenerEtiquetaFechaTurno(
-            proximoTurno.fecha
-        );
+    const fechaVisible = obtenerEtiquetaFechaTurno(proximoTurno.fecha);
+    const horaVisible = proximoTurno.hora || "Sin hora";
 
-    const horaVisible =
-        proximoTurno.hora || "Sin hora";
-
-    const turnosHoyHTML =
-    turnosHoy.length
+    const turnosHoyHTML = turnosHoy.length
         ? turnosHoy.map(turno => {
-
-            const esProximo =
-                proximoTurno &&
-                turno.consultaId ===
-                    proximoTurno.consultaId;
-
-            const yaPaso =
-                turnoYaPaso(turno);
+            const esProximo = turno.turnoId === proximoTurno.turnoId;
+            const yaPaso = turnoYaPaso(turno);
 
             return `
-
-                <article class="
-                    today-appointment-item
-                    ${esProximo ? "is-next" : ""}
-                    ${yaPaso ? "is-past" : ""}
-                ">
-
+                <article class="today-appointment-item ${esProximo ? "is-next" : ""} ${yaPaso ? "is-past" : ""}">
                     <div class="today-appointment-time">
-
-                        ${turno.hora
-                            ? escaparHTML(turno.hora)
-                            : "Sin hora"
-                        }
-
+                        ${turno.hora ? escaparHTML(turno.hora) : "Sin hora"}
                     </div>
 
                     <div class="today-appointment-patient">
-
-                        <strong>
-                            ${escaparHTML(
-                                turno.nombreCompleto
-                            )}
-                        </strong>
-
-                        ${
-                            turno.obraSocial
-                                ? `
-                                    <span>
-                                        ${escaparHTML(
-                                            turno.obraSocial
-                                        )}
-                                    </span>
-                                `
-                                : ""
-                        }
-
+                        <strong>${escaparHTML(turno.nombreCompleto)}</strong>
+                        ${turno.obraSocial ? `<span>${escaparHTML(turno.obraSocial)}</span>` : ""}
+                        ${turno.observaciones ? `<small>${escaparHTML(turno.observaciones)}</small>` : ""}
                     </div>
 
-                    ${
-                        esProximo
-                            ? `
-                                <span class="today-appointment-badge">
-                                    Próximo
-                                </span>
-                            `
-                            : ""
-                    }
-
-                    <button
-                        class="secondary-button"
-                        type="button"
-                        onclick="abrirPacienteDesdeAgenda(
-                            '${turno.pacienteId}'
-                        )">
-
-                        Ver paciente
-
-                    </button>
-
+                    ${esProximo ? `<span class="today-appointment-badge">Próximo</span>` : ""}
+                    ${crearAccionesTurno(turno)}
                 </article>
-
             `;
-
         }).join("")
-        : `
+        : `<div class="agenda-list-empty">No hay turnos programados para hoy.</div>`;
 
-            <div class="agenda-list-empty">
-                No hay turnos programados para hoy.
-            </div>
+    const turnosSemanaAgrupados = turnosSemana.reduce((grupos, turno) => {
+        if(!grupos[turno.fecha]) grupos[turno.fecha] = [];
+        grupos[turno.fecha].push(turno);
+        return grupos;
+    }, {});
 
-        `;
-
-    const turnosSemanaAgrupados =
-    turnosSemana.reduce(
-        (grupos, turno) => {
-
-            if(!grupos[turno.fecha]){
-                grupos[turno.fecha] = [];
-            }
-
-            grupos[turno.fecha].push(turno);
-
-            return grupos;
-
-        },
-        {}
-    );
-
-
-const turnosSemanaHTML =
-    turnosSemana.length
-        ? Object.entries(
-            turnosSemanaAgrupados
-        ).map(([fecha, turnos]) => `
-
+    const turnosSemanaHTML = turnosSemana.length
+        ? Object.entries(turnosSemanaAgrupados).map(([fecha, turnos]) => `
             <div class="week-day-group">
-
                 <h3 class="week-day-title">
-                    ${escaparHTML(
-                        formatearDiaAgenda(fecha)
-                    )}
+                    ${escaparHTML(formatearDiaAgenda(fecha))}
                 </h3>
 
                 <div class="week-appointments-list">
-
                     ${turnos.map(turno => `
-
                         <article class="week-appointment-item">
-
                             <div class="week-appointment-time">
-
-                                ${
-                                    turno.hora
-                                        ? escaparHTML(turno.hora)
-                                        : "Sin hora"
-                                }
-
+                                ${turno.hora ? escaparHTML(turno.hora) : "Sin hora"}
                             </div>
 
                             <div class="week-appointment-patient">
-
-                                <strong>
-                                    ${escaparHTML(
-                                        turno.nombreCompleto
-                                    )}
-                                </strong>
-
-                                ${
-                                    turno.obraSocial
-                                        ? `
-                                            <span>
-                                                ${escaparHTML(
-                                                    turno.obraSocial
-                                                )}
-                                            </span>
-                                        `
-                                        : ""
-                                }
-
+                                <strong>${escaparHTML(turno.nombreCompleto)}</strong>
+                                ${turno.obraSocial ? `<span>${escaparHTML(turno.obraSocial)}</span>` : ""}
+                                ${turno.observaciones ? `<small>${escaparHTML(turno.observaciones)}</small>` : ""}
                             </div>
 
-                            <button
-                                class="secondary-button"
-                                type="button"
-                                onclick="abrirPacienteDesdeAgenda(
-                                    '${turno.pacienteId}'
-                                )">
-
-                                Ver paciente
-
-                            </button>
-
+                            ${crearAccionesTurno(turno)}
                         </article>
-
                     `).join("")}
-
                 </div>
-
             </div>
-
         `).join("")
-        : `
-
-            <div class="agenda-list-empty">
-                No hay más turnos programados esta semana.
-            </div>
-
-        `;
+        : `<div class="agenda-list-empty">No hay más turnos programados esta semana.</div>`;
 
     patientPanel.innerHTML = `
-
         <section class="agenda-home">
-
-            <div class="agenda-home-header">
-
-                <div>
-                    <h1>Agenda</h1>
-                    <p>
-                        Resumen de los próximos turnos.
-                    </p>
-                </div>
-
-            </div>
+            ${encabezadoAgenda}
 
             <article class="next-appointment-card">
-
-                <div class="next-appointment-label">
-                    Próximo turno
-                </div>
+                <div class="next-appointment-label">Próximo turno</div>
 
                 <div class="next-appointment-content">
-
                     <div class="next-appointment-time">
-
-                        <strong>
-                            ${escaparHTML(horaVisible)}
-                        </strong>
-
-                        <span>
-                            ${escaparHTML(fechaVisible)}
-                        </span>
-
+                        <strong>${escaparHTML(horaVisible)}</strong>
+                        <span>${escaparHTML(fechaVisible)}</span>
                     </div>
 
                     <div class="next-appointment-patient">
-
-                        <h2>
-                            ${escaparHTML(
-                                proximoTurno.nombreCompleto
-                            )}
-                        </h2>
-
-                        ${
-                            proximoTurno.obraSocial
-                                ? `
-                                    <p>
-                                        ${escaparHTML(
-                                            proximoTurno.obraSocial
-                                        )}
-                                    </p>
-                                `
-                                : ""
-                        }
-
+                        <h2>${escaparHTML(proximoTurno.nombreCompleto)}</h2>
+                        ${proximoTurno.obraSocial ? `<p>${escaparHTML(proximoTurno.obraSocial)}</p>` : ""}
+                        ${proximoTurno.observaciones ? `<small>${escaparHTML(proximoTurno.observaciones)}</small>` : ""}
                     </div>
 
-                    <button
-                        class="action-button"
-                        type="button"
-                        onclick="abrirPacienteDesdeAgenda(
-                            '${proximoTurno.pacienteId}'
-                        )">
-
-                        Ver paciente
-
-                    </button>
-
+                    ${crearAccionesTurno(proximoTurno)}
                 </div>
-
             </article>
 
-        <section class="today-appointments">
-
-            <div class="agenda-section-header">
-
-                <div>
-                <h2>Turnos de hoy</h2>
-
-                <span>
-                ${turnosHoy.length}
-                ${turnosHoy.length === 1
-                    ? "turno"
-                    : "turnos"
-                }
-                </span>
+            <section class="today-appointments">
+                <div class="agenda-section-header">
+                    <div>
+                        <h2>Turnos de hoy</h2>
+                        <span>${turnosHoy.length} ${turnosHoy.length === 1 ? "turno" : "turnos"}</span>
+                    </div>
                 </div>
 
-            </div>
+                <div class="today-appointments-list">
+                    ${turnosHoyHTML}
+                </div>
+            </section>
 
-    <div class="today-appointments-list">
-
-        ${turnosHoyHTML}
-
-    </div>
-
-</section>
-
-        <section class="week-appointments">
-
-            <div class="agenda-section-header">
-
-                <div>
-                    <h2>Esta semana</h2>
-
-                    <span>
-                        ${turnosSemana.length}
-                        ${
-                            turnosSemana.length === 1
-                                ? "turno"
-                                : "turnos"
-                        }
-                    </span>
+            <section class="week-appointments">
+                <div class="agenda-section-header">
+                    <div>
+                        <h2>Esta semana</h2>
+                        <span>${turnosSemana.length} ${turnosSemana.length === 1 ? "turno" : "turnos"}</span>
+                    </div>
                 </div>
 
-            </div>
-
-            <div class="week-appointments-content">
-
-                ${turnosSemanaHTML}
-
-            </div>
-
+                <div class="week-appointments-content">
+                    ${turnosSemanaHTML}
+                </div>
+            </section>
         </section>
-
-        </section>
-
     `;
 
 }
-
 
 function escaparHTML(texto){
 
@@ -851,6 +879,19 @@ async function mostrarPaciente(p){
     const edad = p.edad;
 
     patientPanel.innerHTML = `
+
+    <div class="patient-page-navigation">
+
+        <button
+            class="secondary-button agenda-back-button"
+            type="button"
+            onclick="mostrarAgendaInicial()">
+
+            ← Volver a Agenda
+
+        </button>
+
+    </div>
 
     <div class="patient-header">
 
@@ -1223,7 +1264,7 @@ if(consultas.length === 0){
                     ? `
                         <div class="evolution-next-control">
 
-                            <span>Próximo control</span>
+                            <span>Próximo turno</span>
 
                             <strong>
                                 ${formatearFecha(c.proximo_control)}
@@ -1900,7 +1941,7 @@ async function verDetalleConsulta(id, numeroConsulta){
                     )}
 
                     ${crearDatoConsulta(
-                        "Próximo control",
+                        "Próximo turno",
                         consulta.proximo_control
                         ? `${formatearFecha(consulta.proximo_control)}${
                         consulta.proximo_control_hora? ` · ${consulta.proximo_control_hora.slice(0, 5)}`: ""}`: "-"
@@ -2319,7 +2360,7 @@ async function exportarEvolucionPDF(id, numeroConsulta){
                     consulta.proximo_control
                         ? `
                             <div class="print-next-control">
-                                Próximo control:
+                                Próximo turno:
                                 <strong>
                                     ${formatearFecha(
                                         consulta.proximo_control

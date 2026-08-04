@@ -1,4 +1,4 @@
-const CACHE_VERSION = "clinicapp-v2";
+const CACHE_VERSION = "clinicapp-v5-turnos-disponibilidad";
 
 const APP_SHELL = [
     "./",

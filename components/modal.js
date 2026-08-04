@@ -474,7 +474,7 @@ function abrirModalNuevaEvolucion(){
                 <div class="form-grid">
 
             <div>
-                <label>Próximo control</label>
+                <label>Próximo turno</label>
                 <input
                 id="evProximoControl"
                 type="date">
@@ -764,6 +764,8 @@ async function guardarEvolucion(){
     evolucionEditandoId = null;
 
     cerrarModal();
+
+    proximosTurnos = await Database.cargarProximosTurnos();
 
     await mostrarPaciente(pacienteActual);
 
@@ -1398,7 +1400,7 @@ async function exportarFichaPDF(){
                             consulta.proximo_control
                                 ? `
                                     <div class="print-next-control">
-                                        Próximo control:
+                                        Próximo turno:
                                         <strong>
                                             ${formatearFecha(
                                                 consulta.proximo_control

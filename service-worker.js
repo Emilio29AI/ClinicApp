@@ -44,8 +44,17 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
 
+     const url = new URL(event.request.url);
+
+    if(
+        event.request.method !== "GET" ||
+        url.protocol !== "https:" ||
+        url.origin !== self.location.origin
+    ){
+        return;
+    }
+
     const request = event.request;
-    const url = new URL(request.url);
 
     if(
         request.method !== "GET" ||

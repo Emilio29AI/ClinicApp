@@ -20,6 +20,7 @@ let perfilMedicoActual = null;
 let mostrandoTodosPacientes = false;
 let graficoEvolucionActual = null;
 let metricaGraficoActual = "peso";
+let proximosTurnos = [];
 
 
 
@@ -125,6 +126,652 @@ function formatearFecha(fecha){
     }
 
     return new Date(fecha).toLocaleDateString("es-AR");
+
+}
+
+function obtenerFechaLocalISO(){
+
+    const ahora = new Date();
+
+    const año = ahora.getFullYear();
+
+    const mes = String(
+        ahora.getMonth() + 1
+    ).padStart(2, "0");
+
+    const dia = String(
+        ahora.getDate()
+    ).padStart(2, "0");
+
+    return `${año}-${mes}-${dia}`;
+
+}
+
+
+function obtenerProximoTurno(){
+
+    if(!proximosTurnos.length){
+        return null;
+    }
+
+    const ahora = new Date();
+
+    /*
+     * Primero buscamos turnos futuros
+     * que tengan fecha y hora definidas.
+     */
+    const turnosConHora =
+        proximosTurnos
+            .filter(turno => {
+
+                if(!turno.fecha || !turno.hora){
+                    return false;
+                }
+
+                const fechaHora =
+                    new Date(
+                        `${turno.fecha}T${turno.hora}:00`
+                    );
+
+                return fechaHora >= ahora;
+
+            })
+            .sort((a, b) => {
+
+                const fechaA =
+                    new Date(
+                        `${a.fecha}T${a.hora}:00`
+                    );
+
+                const fechaB =
+                    new Date(
+                        `${b.fecha}T${b.hora}:00`
+                    );
+
+                return fechaA - fechaB;
+
+            });
+
+    if(turnosConHora.length){
+        return turnosConHora[0];
+    }
+
+    /*
+     * Si no existe ninguno con hora,
+     * usamos el primer turno futuro sin hora.
+     */
+    const hoy = obtenerFechaLocalISO();
+
+    return proximosTurnos
+        .filter(turno =>
+            turno.fecha &&
+            turno.fecha >= hoy
+        )
+        .sort((a, b) =>
+            a.fecha.localeCompare(b.fecha)
+        )[0] || null;
+
+}
+
+function obtenerTurnosDeHoy(){
+
+    const hoy = obtenerFechaLocalISO();
+
+    return proximosTurnos
+        .filter(turno =>
+            turno.fecha === hoy
+        )
+        .sort((a, b) => {
+
+            if(a.hora && b.hora){
+                return a.hora.localeCompare(b.hora);
+            }
+
+            if(a.hora) return -1;
+            if(b.hora) return 1;
+
+            return a.nombreCompleto.localeCompare(
+                b.nombreCompleto,
+                "es"
+            );
+
+        });
+
+}
+
+function obtenerFinDeSemanaISO(){
+
+    const fecha = new Date();
+
+    const diaSemana = fecha.getDay();
+
+    const diasHastaDomingo =
+        diaSemana === 0
+            ? 0
+            : 7 - diaSemana;
+
+    fecha.setDate(
+        fecha.getDate() + diasHastaDomingo
+    );
+
+    const año = fecha.getFullYear();
+
+    const mes = String(
+        fecha.getMonth() + 1
+    ).padStart(2, "0");
+
+    const dia = String(
+        fecha.getDate()
+    ).padStart(2, "0");
+
+    return `${año}-${mes}-${dia}`;
+
+}
+
+
+function obtenerTurnosDeLaSemana(){
+
+    const hoy = obtenerFechaLocalISO();
+
+    const finDeSemana =
+        obtenerFinDeSemanaISO();
+
+    return proximosTurnos
+        .filter(turno =>
+            turno.fecha &&
+            turno.fecha > hoy &&
+            turno.fecha <= finDeSemana
+        )
+        .sort((a, b) => {
+
+            const comparacionFecha =
+                a.fecha.localeCompare(b.fecha);
+
+            if(comparacionFecha !== 0){
+                return comparacionFecha;
+            }
+
+            if(a.hora && b.hora){
+                return a.hora.localeCompare(b.hora);
+            }
+
+            if(a.hora) return -1;
+            if(b.hora) return 1;
+
+            return a.nombreCompleto.localeCompare(
+                b.nombreCompleto,
+                "es"
+            );
+
+        });
+
+}
+
+
+function formatearDiaAgenda(fechaISO){
+
+    const fecha =
+        new Date(`${fechaISO}T12:00:00`);
+
+    const texto =
+        fecha.toLocaleDateString(
+            "es-AR",
+            {
+                weekday:"long",
+                day:"numeric",
+                month:"long"
+            }
+        );
+
+    return texto.charAt(0).toUpperCase() +
+        texto.slice(1);
+
+}
+
+function turnoYaPaso(turno){
+
+    if(!turno.fecha || !turno.hora){
+        return false;
+    }
+
+    const fechaHoraTurno =
+        new Date(
+            `${turno.fecha}T${turno.hora}:00`
+        );
+
+    return fechaHoraTurno < new Date();
+
+}
+
+
+function obtenerEtiquetaFechaTurno(fecha){
+
+    const hoy = obtenerFechaLocalISO();
+
+    const mañanaFecha = new Date();
+
+    mañanaFecha.setDate(
+        mañanaFecha.getDate() + 1
+    );
+
+    const mañana = [
+        mañanaFecha.getFullYear(),
+        String(
+            mañanaFecha.getMonth() + 1
+        ).padStart(2, "0"),
+        String(
+            mañanaFecha.getDate()
+        ).padStart(2, "0")
+    ].join("-");
+
+    if(fecha === hoy){
+        return "Hoy";
+    }
+
+    if(fecha === mañana){
+        return "Mañana";
+    }
+
+    return formatearFecha(fecha);
+
+}
+
+
+function abrirPacienteDesdeAgenda(pacienteId){
+
+    const paciente =
+        pacientes.find(
+            item => item.id === pacienteId
+        );
+
+    if(!paciente){
+
+        alert(
+            "No se pudo encontrar la ficha del paciente."
+        );
+
+        return;
+    }
+
+    mostrarPaciente(paciente);
+
+}
+
+
+function mostrarAgendaInicial(){
+
+    pacienteActual = null;
+
+    document
+        .querySelectorAll(".patient-card")
+        .forEach(card => {
+            card.classList.remove("active");
+        });
+
+    const proximoTurno =
+        obtenerProximoTurno();
+    
+    const turnosHoy =
+    obtenerTurnosDeHoy();
+
+    const turnosSemana =
+    obtenerTurnosDeLaSemana();
+
+    if(!proximoTurno){
+
+        patientPanel.innerHTML = `
+
+            <section class="agenda-home">
+
+                <div class="agenda-home-header">
+
+                    <div>
+                        <h1>Agenda</h1>
+                        <p>
+                            Resumen de los próximos turnos.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="agenda-empty">
+
+                    <strong>
+                        No hay próximos turnos programados.
+                    </strong>
+
+                    <span>
+                        Los próximos controles aparecerán
+                        automáticamente en esta pantalla.
+                    </span>
+
+                </div>
+
+            </section>
+
+        `;
+
+        return;
+    }
+
+    const fechaVisible =
+        obtenerEtiquetaFechaTurno(
+            proximoTurno.fecha
+        );
+
+    const horaVisible =
+        proximoTurno.hora || "Sin hora";
+
+    const turnosHoyHTML =
+    turnosHoy.length
+        ? turnosHoy.map(turno => {
+
+            const esProximo =
+                proximoTurno &&
+                turno.consultaId ===
+                    proximoTurno.consultaId;
+
+            const yaPaso =
+                turnoYaPaso(turno);
+
+            return `
+
+                <article class="
+                    today-appointment-item
+                    ${esProximo ? "is-next" : ""}
+                    ${yaPaso ? "is-past" : ""}
+                ">
+
+                    <div class="today-appointment-time">
+
+                        ${turno.hora
+                            ? escaparHTML(turno.hora)
+                            : "Sin hora"
+                        }
+
+                    </div>
+
+                    <div class="today-appointment-patient">
+
+                        <strong>
+                            ${escaparHTML(
+                                turno.nombreCompleto
+                            )}
+                        </strong>
+
+                        ${
+                            turno.obraSocial
+                                ? `
+                                    <span>
+                                        ${escaparHTML(
+                                            turno.obraSocial
+                                        )}
+                                    </span>
+                                `
+                                : ""
+                        }
+
+                    </div>
+
+                    ${
+                        esProximo
+                            ? `
+                                <span class="today-appointment-badge">
+                                    Próximo
+                                </span>
+                            `
+                            : ""
+                    }
+
+                    <button
+                        class="secondary-button"
+                        type="button"
+                        onclick="abrirPacienteDesdeAgenda(
+                            '${turno.pacienteId}'
+                        )">
+
+                        Ver paciente
+
+                    </button>
+
+                </article>
+
+            `;
+
+        }).join("")
+        : `
+
+            <div class="agenda-list-empty">
+                No hay turnos programados para hoy.
+            </div>
+
+        `;
+
+    const turnosSemanaAgrupados =
+    turnosSemana.reduce(
+        (grupos, turno) => {
+
+            if(!grupos[turno.fecha]){
+                grupos[turno.fecha] = [];
+            }
+
+            grupos[turno.fecha].push(turno);
+
+            return grupos;
+
+        },
+        {}
+    );
+
+
+const turnosSemanaHTML =
+    turnosSemana.length
+        ? Object.entries(
+            turnosSemanaAgrupados
+        ).map(([fecha, turnos]) => `
+
+            <div class="week-day-group">
+
+                <h3 class="week-day-title">
+                    ${escaparHTML(
+                        formatearDiaAgenda(fecha)
+                    )}
+                </h3>
+
+                <div class="week-appointments-list">
+
+                    ${turnos.map(turno => `
+
+                        <article class="week-appointment-item">
+
+                            <div class="week-appointment-time">
+
+                                ${
+                                    turno.hora
+                                        ? escaparHTML(turno.hora)
+                                        : "Sin hora"
+                                }
+
+                            </div>
+
+                            <div class="week-appointment-patient">
+
+                                <strong>
+                                    ${escaparHTML(
+                                        turno.nombreCompleto
+                                    )}
+                                </strong>
+
+                                ${
+                                    turno.obraSocial
+                                        ? `
+                                            <span>
+                                                ${escaparHTML(
+                                                    turno.obraSocial
+                                                )}
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                            <button
+                                class="secondary-button"
+                                type="button"
+                                onclick="abrirPacienteDesdeAgenda(
+                                    '${turno.pacienteId}'
+                                )">
+
+                                Ver paciente
+
+                            </button>
+
+                        </article>
+
+                    `).join("")}
+
+                </div>
+
+            </div>
+
+        `).join("")
+        : `
+
+            <div class="agenda-list-empty">
+                No hay más turnos programados esta semana.
+            </div>
+
+        `;
+
+    patientPanel.innerHTML = `
+
+        <section class="agenda-home">
+
+            <div class="agenda-home-header">
+
+                <div>
+                    <h1>Agenda</h1>
+                    <p>
+                        Resumen de los próximos turnos.
+                    </p>
+                </div>
+
+            </div>
+
+            <article class="next-appointment-card">
+
+                <div class="next-appointment-label">
+                    Próximo turno
+                </div>
+
+                <div class="next-appointment-content">
+
+                    <div class="next-appointment-time">
+
+                        <strong>
+                            ${escaparHTML(horaVisible)}
+                        </strong>
+
+                        <span>
+                            ${escaparHTML(fechaVisible)}
+                        </span>
+
+                    </div>
+
+                    <div class="next-appointment-patient">
+
+                        <h2>
+                            ${escaparHTML(
+                                proximoTurno.nombreCompleto
+                            )}
+                        </h2>
+
+                        ${
+                            proximoTurno.obraSocial
+                                ? `
+                                    <p>
+                                        ${escaparHTML(
+                                            proximoTurno.obraSocial
+                                        )}
+                                    </p>
+                                `
+                                : ""
+                        }
+
+                    </div>
+
+                    <button
+                        class="action-button"
+                        type="button"
+                        onclick="abrirPacienteDesdeAgenda(
+                            '${proximoTurno.pacienteId}'
+                        )">
+
+                        Ver paciente
+
+                    </button>
+
+                </div>
+
+            </article>
+
+        <section class="today-appointments">
+
+            <div class="agenda-section-header">
+
+                <div>
+                <h2>Turnos de hoy</h2>
+
+                <span>
+                ${turnosHoy.length}
+                ${turnosHoy.length === 1
+                    ? "turno"
+                    : "turnos"
+                }
+                </span>
+                </div>
+
+            </div>
+
+    <div class="today-appointments-list">
+
+        ${turnosHoyHTML}
+
+    </div>
+
+</section>
+
+        <section class="week-appointments">
+
+            <div class="agenda-section-header">
+
+                <div>
+                    <h2>Esta semana</h2>
+
+                    <span>
+                        ${turnosSemana.length}
+                        ${
+                            turnosSemana.length === 1
+                                ? "turno"
+                                : "turnos"
+                        }
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="week-appointments-content">
+
+                ${turnosSemanaHTML}
+
+            </div>
+
+        </section>
+
+        </section>
+
+    `;
 
 }
 
@@ -580,6 +1227,7 @@ if(consultas.length === 0){
 
                             <strong>
                                 ${formatearFecha(c.proximo_control)}
+                                ${c.proximo_control_hora? ` · ${c.proximo_control_hora.slice(0, 5)}`: ""}
                             </strong>
 
                         </div>
@@ -1170,7 +1818,18 @@ async function iniciar(){
     pacientes =
         await Database.cargarPacientes();
 
+    console.log("Cargando agenda...");
+
+    proximosTurnos =
+        await Database.cargarProximosTurnos();
+
+    console.log(
+        "Próximos turnos:",
+        proximosTurnos
+    );
+
     mostrarListadoPrincipalPacientes();
+    mostrarAgendaInicial();
 
 }
 
@@ -1242,7 +1901,9 @@ async function verDetalleConsulta(id, numeroConsulta){
 
                     ${crearDatoConsulta(
                         "Próximo control",
-                        formatearFecha(consulta.proximo_control)
+                        consulta.proximo_control
+                        ? `${formatearFecha(consulta.proximo_control)}${
+                        consulta.proximo_control_hora? ` · ${consulta.proximo_control_hora.slice(0, 5)}`: ""}`: "-"
                     )}
 
                     <div class="consultation-detail-full">
@@ -1460,6 +2121,11 @@ async function eliminarPaciente(){
     );
 
     pacientes = await Database.cargarPacientes();
+
+    proximosTurnos = await Database.cargarProximosTurnos();
+
+    console.log("Próximos turnos:", proximosTurnos
+    );
 
     mostrarListadoPrincipalPacientes();
 

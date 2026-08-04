@@ -323,7 +323,12 @@ const Database = {
             saturacion: datos.saturacion,
 
             proximo_control:
-                datos.proximoControl
+                datos.proximoControl,
+            
+            proximo_control_hora:
+                datos.proximoControlHora || null
+
+                
 
         })
         .select()
@@ -369,6 +374,101 @@ const Database = {
         return data;
 
     },
+
+    async cargarProximosTurnos(){
+
+    const hoy =
+        new Date().toLocaleDateString(
+            "en-CA"
+        );
+
+    const { data, error } =
+        await supabaseClient
+            .from("consultas")
+            .select(`
+                id,
+                paciente_id,
+                proximo_control,
+                proximo_control_hora,
+                pacientes (
+                    id,
+                    apellido,
+                    nombre,
+                    telefono,
+                    obra_social
+                )
+            `)
+            .not(
+                "proximo_control",
+                "is",
+                null
+            )
+            .gte(
+                "proximo_control",
+                hoy
+            )
+            .order(
+                "proximo_control",
+                { ascending:true }
+            )
+            .order(
+                "proximo_control_hora",
+                {
+                    ascending:true,
+                    nullsFirst:false
+                }
+            );
+
+    if(error){
+
+        console.error(
+            "Error al cargar próximos turnos:",
+            error
+        );
+
+        return [];
+
+    }
+
+    return (data || []).map(turno => ({
+
+        consultaId:
+            turno.id,
+
+        pacienteId:
+            turno.paciente_id,
+
+        fecha:
+            turno.proximo_control,
+
+        hora:
+            turno.proximo_control_hora
+                ? turno.proximo_control_hora.slice(0, 5)
+                : null,
+
+        apellido:
+            turno.pacientes?.apellido || "",
+
+        nombre:
+            turno.pacientes?.nombre || "",
+
+        nombreCompleto:
+            [
+                turno.pacientes?.apellido,
+                turno.pacientes?.nombre
+            ]
+                .filter(Boolean)
+                .join(", "),
+
+        telefono:
+            turno.pacientes?.telefono || "",
+
+        obraSocial:
+            turno.pacientes?.obra_social || ""
+
+    }));
+
+    },  
 
     async cargarPerfilMedico() {
 
@@ -500,7 +600,10 @@ async actualizarConsulta(id, datos) {
                 datos.saturacion || null,
 
             proximo_control:
-                datos.proximoControl || null
+                datos.proximoControl || null,
+
+            proximo_control_hora:
+                datos.proximoControlHora || null
 
         })
         .eq("id", id)

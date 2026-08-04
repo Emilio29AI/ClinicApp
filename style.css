@@ -3687,3 +3687,453 @@ body:not(.auth-page) .floating-button:hover{
     }
 
 }
+
+/* =====================================================
+   AGENDA — PANTALLA INICIAL
+===================================================== */
+
+.agenda-home{
+    width:100%;
+}
+
+.agenda-home-header{
+    margin-bottom:18px;
+}
+
+.agenda-home-header h1{
+    margin:0;
+    color:var(--clinic-blue-dark);
+    font-size:27px;
+}
+
+.agenda-home-header p{
+    margin:5px 0 0;
+    color:var(--clinic-blue-muted);
+    font-size:14px;
+}
+
+.next-appointment-card{
+    padding:20px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:16px;
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+}
+
+.next-appointment-label{
+    margin-bottom:14px;
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+}
+
+.next-appointment-content{
+    display:grid;
+    grid-template-columns:110px minmax(0, 1fr) auto;
+    align-items:center;
+    gap:22px;
+}
+
+.next-appointment-time{
+    display:flex;
+    flex-direction:column;
+}
+
+.next-appointment-time strong{
+    color:var(--clinic-blue-dark);
+    font-size:25px;
+}
+
+.next-appointment-time span{
+    margin-top:3px;
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+}
+
+.next-appointment-patient h2{
+    margin:0;
+    color:#2F4352;
+    font-size:21px;
+}
+
+.next-appointment-patient p{
+    margin:5px 0 0;
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+}
+
+.agenda-empty{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+    padding:28px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:14px;
+    background:var(--clinic-blue-soft-2);
+}
+
+.agenda-empty span{
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+}
+
+@media (max-width:650px){
+
+    .next-appointment-content{
+        grid-template-columns:1fr;
+        gap:14px;
+    }
+
+    .next-appointment-content .action-button{
+        width:100%;
+    }
+
+}
+
+/* =====================================================
+   AGENDA — TURNOS DE HOY
+===================================================== */
+
+.today-appointments,
+.week-appointments{
+    margin-top:24px;
+    padding:18px 18px 16px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:16px;
+    background:rgba(255, 255, 255, 0.68);
+}
+
+.today-appointments{
+    background:rgba(241, 248, 253, 0.72);
+}
+
+.week-appointments{
+    background:rgba(248, 251, 254, 0.92);
+}
+
+.today-appointments .agenda-section-header,
+.week-appointments .agenda-section-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:14px;
+    padding-bottom:10px;
+    border-bottom:1px solid #DCE9F2;
+}
+
+.today-appointments .agenda-section-header h2,
+.week-appointments .agenda-section-header h2{
+    margin:0;
+}
+
+.today-appointments .agenda-section-header span,
+.week-appointments .agenda-section-header span{
+    display:block;
+    margin-top:4px;
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+}
+
+.agenda-section-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.agenda-section-header h2{
+    margin:0;
+    color:var(--clinic-blue-dark);
+    font-size:20px;
+}
+
+.agenda-section-header span{
+    display:block;
+    margin-top:3px;
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+}
+
+.today-appointments-list{
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+}
+
+.today-appointment-item{
+    display:grid;
+    grid-template-columns:90px minmax(0, 1fr) auto auto;
+    align-items:center;
+    gap:14px;
+    padding:13px 14px;
+    border:1px solid var(--clinic-blue-border);
+    border-radius:12px;
+    background:#FFFFFF;
+}
+
+.today-appointment-item.is-next{
+    border-color:var(--clinic-blue);
+    background:var(--clinic-blue-soft);
+    box-shadow:
+        inset 3px 0 0 var(--clinic-blue);
+}
+
+.today-appointment-item.is-past{
+    opacity:.55;
+}
+
+.today-appointment-time{
+    color:var(--clinic-blue-dark);
+    font-size:16px;
+    font-weight:700;
+}
+
+.today-appointment-patient{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+}
+
+.today-appointment-patient strong{
+    overflow:hidden;
+    color:#2F4352;
+    font-size:14px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.today-appointment-patient span{
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+}
+
+.today-appointment-badge{
+    padding:5px 8px;
+    border-radius:20px;
+    background:#FFFFFF;
+    color:var(--clinic-blue-dark);
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+}
+
+.today-appointment-item .secondary-button{
+    padding:8px 12px;
+    font-size:12px;
+}
+
+.agenda-list-empty{
+    padding:18px;
+    border:1px dashed var(--clinic-blue-border);
+    border-radius:12px;
+    color:var(--clinic-blue-muted);
+    font-size:13px;
+    text-align:center;
+}
+
+@media (max-width:650px){
+
+    .today-appointment-item{
+        grid-template-columns:70px minmax(0, 1fr);
+    }
+
+    .today-appointment-badge{
+        justify-self:start;
+    }
+
+    .today-appointment-item .secondary-button{
+        width:100%;
+    }
+
+}
+
+/* =====================================================
+   PANEL DE PACIENTES — INTEGRACIÓN VISUAL
+===================================================== */
+
+/* Encabezado suave, similar a las tarjetas de Agenda */
+
+body:not(.auth-page) .sidebar-title{
+    padding:20px 20px 18px;
+    border-bottom:1px solid var(--clinic-blue-border);
+
+    background:linear-gradient(
+        135deg,
+        var(--clinic-blue-soft),
+        #FFFFFF
+    );
+
+    color:var(--clinic-blue-dark);
+}
+
+
+/* Separación más clara entre pacientes */
+
+body:not(.auth-page) .patient-card{
+    position:relative;
+
+    margin:7px 10px;
+    padding:14px 16px;
+
+    border:1px solid transparent;
+    border-radius:11px;
+
+    transition:
+        background-color .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        transform .18s ease;
+}
+
+
+/* Hover delicado */
+
+body:not(.auth-page) .patient-card:hover{
+    border-color:var(--clinic-blue-border);
+    background:var(--clinic-blue-soft-2);
+
+    box-shadow:
+        0 4px 12px rgba(48, 91, 120, .07);
+
+    transform:translateY(-1px);
+}
+
+
+/* Paciente seleccionado */
+
+body:not(.auth-page) .patient-card.active{
+    border-color:#8CB5CE;
+    background:var(--clinic-blue-soft);
+
+    box-shadow:
+        inset 3px 0 0 var(--clinic-blue),
+        0 4px 12px rgba(48, 91, 120, .08);
+}
+
+
+/* Nombre del paciente */
+
+body:not(.auth-page) .patient-card strong{
+    color:#223F53;
+}
+
+
+/* Datos secundarios */
+
+body:not(.auth-page) .patient-card span,
+body:not(.auth-page) .patient-card p{
+    color:var(--clinic-blue-muted);
+}
+
+
+/* Botón inferior integrado al panel */
+
+body:not(.auth-page) .sidebar-footer{
+    padding:10px;
+    border-top:1px solid var(--clinic-blue-border);
+    background:#FFFFFF;
+}
+
+body:not(.auth-page) .sidebar-footer button{
+    border-color:var(--clinic-blue-border);
+    background:var(--clinic-blue-soft-2);
+    color:var(--clinic-blue-dark);
+}
+
+body:not(.auth-page) .sidebar-footer button:hover{
+    border-color:#8CB5CE;
+    background:var(--clinic-blue-soft);
+}
+
+/* =====================================================
+   AGENDA — ESTA SEMANA
+===================================================== */
+
+.week-day-group{
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+}
+
+.week-day-title{
+    margin:0;
+    padding-left:2px;
+    color:var(--clinic-blue-dark);
+    font-size:14px;
+    font-weight:700;
+}
+
+.week-appointments-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.week-appointment-item{
+    display:grid;
+    grid-template-columns:90px minmax(0, 1fr) auto;
+    align-items:center;
+    gap:14px;
+
+    padding:12px 14px;
+
+    border:1px solid var(--clinic-blue-border);
+    border-radius:11px;
+
+    background:#FFFFFF;
+}
+
+.week-appointment-item:hover{
+    border-color:#9DBFD3;
+    background:var(--clinic-blue-soft-2);
+}
+
+.week-appointment-time{
+    color:var(--clinic-blue-dark);
+    font-size:15px;
+    font-weight:700;
+}
+
+.week-appointment-patient{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+}
+
+.week-appointment-patient strong{
+    overflow:hidden;
+    color:#2F4352;
+    font-size:14px;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.week-appointment-patient span{
+    color:var(--clinic-blue-muted);
+    font-size:12px;
+}
+
+.week-appointment-item .secondary-button{
+    padding:8px 12px;
+    font-size:12px;
+}
+
+@media (max-width:650px){
+
+    .week-appointment-item{
+        grid-template-columns:70px minmax(0, 1fr);
+    }
+
+    .week-appointment-item .secondary-button{
+        grid-column:1 / -1;
+        width:100%;
+    }
+
+}

@@ -473,14 +473,21 @@ function abrirModalNuevaEvolucion(){
 
                 <div class="form-grid">
 
-                    <div>
-                        <label>Próximo control</label>
-                        <input
-                            id="evProximoControl"
-                            type="date">
-                    </div>
+            <div>
+                <label>Próximo control</label>
+                <input
+                id="evProximoControl"
+                type="date">
+            </div>
 
-                </div>
+    <div>
+        <label>Hora</label>
+        <input
+            id="evProximoControlHora"
+            type="time">
+    </div>
+
+</div>
 
             </div>
 
@@ -584,6 +591,9 @@ async function abrirEdicionEvolucion(id){
 
     document.getElementById("evProximoControl").value =
         consulta.proximo_control || "";
+
+    document.getElementById("evProximoControlHora").value =
+    consulta.proximo_control_hora || "";
 
     const boton =
         document.getElementById("guardarEvolucionButton");
@@ -715,7 +725,10 @@ async function guardarEvolucion(){
             document.getElementById("evSaturacion").value || null,
 
         proximoControl:
-            document.getElementById("evProximoControl").value || null
+            document.getElementById("evProximoControl").value || null,
+
+        proximoControlHora:
+            document.getElementById("evProximoControlHora").value || null
 
     };
 

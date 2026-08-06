@@ -1878,7 +1878,7 @@ function abrirModalEnviarIndicaciones(){
 
     overlay.innerHTML = `
 
-        <div class="modal modal-large patient-form-modal instructions-modal">
+        <div class="modal modal-large instructions-modal">
 
             <div class="patient-form-header">
 
@@ -2152,24 +2152,6 @@ async function crearPDFIndicaciones({
 
     try{
 
-        await new Promise(resolve => {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(resolve);
-            });
-        });
-
-        const rect = contenedor.getBoundingClientRect();
-
-        if(rect.width === 0 || rect.height === 0){
-            throw new Error(
-                `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
-            );
-        }
-
-        if(!contenedor.innerText.trim()){
-            throw new Error("El documento PDF no contiene texto.");
-        }
-
         const opciones = {
             margin:[12, 14, 14, 14],
             filename:"indicaciones.pdf",
@@ -2177,9 +2159,7 @@ async function crearPDFIndicaciones({
             html2canvas:{
                 scale:2,
                 useCORS:true,
-                allowTaint:false,
-                backgroundColor:"#ffffff",
-                logging:false
+                backgroundColor:"#ffffff"
             },
             jsPDF:{
                 unit:"mm",

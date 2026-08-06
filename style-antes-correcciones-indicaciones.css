@@ -401,15 +401,8 @@ body{
 .patient-actions{
     display:flex;
     align-items:center;
-    justify-content:flex-end;
     gap:10px;
-    flex-wrap:nowrap;
-    flex-shrink:0;
-    margin-left:auto;
-}
-
-.patient-actions .danger-button{
-    margin-left:auto;
+    flex-wrap:wrap;
 }
 
 .patient-grid{
@@ -979,7 +972,6 @@ body{
 .patient-actions button{
     padding:10px 15px;
     font-size:13px;
-    white-space:nowrap;
 }
 
 .section{
@@ -4376,29 +4368,7 @@ body:not(.auth-page) .sidebar-footer button:hover{
 .instructions-form-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:18px 22px;
-}
-
-.instructions-form-grid > div{
-    display:flex;
-    flex-direction:column;
-    gap:7px;
-    min-width:0;
-}
-
-.instructions-form-grid label{
-    display:block;
-    min-height:18px;
-    font-size:13px;
-    font-weight:600;
-    line-height:18px;
-}
-
-.instructions-form-grid input,
-.instructions-form-grid select,
-.instructions-form-grid textarea{
-    width:100%;
-    box-sizing:border-box;
+    gap:16px;
 }
 
 .instructions-full-width{
@@ -4415,10 +4385,14 @@ body:not(.auth-page) .sidebar-footer button:hover{
 }
 
 .instructions-pdf-document{
-    position:relative;
-    width:680px;
+    position:fixed;
+    z-index:-9999;
+    top:0;
+    left:-10000px;
+    width:794px;
+    min-height:1123px;
     box-sizing:border-box;
-    padding:42px 46px 38px;
+    padding:48px 54px 44px;
     background:#ffffff;
     color:#263b49;
     font-family:Arial, Helvetica, sans-serif;
@@ -4500,7 +4474,7 @@ body:not(.auth-page) .sidebar-footer button:hover{
 }
 
 .instructions-pdf-text{
-    min-height:260px;
+    min-height:410px;
     color:#2d414e;
     font-size:14px;
 }

@@ -919,6 +919,15 @@ async function mostrarPaciente(p){
         <div class="patient-actions">
 
             <button
+                class="secondary-button send-instructions-button"
+                type="button"
+                onclick="abrirModalEnviarIndicaciones()">
+
+                Enviar indicaciones
+
+            </button>
+
+            <button
                 class="secondary-button"
                 onclick="abrirFichaCompletaPaciente()">
 

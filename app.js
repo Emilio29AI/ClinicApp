@@ -2520,6 +2520,30 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
                         </button>
 
                         <button
+                            class="secondary-button"
+                            type="button"
+                            onclick="descargarArchivoPaciente(
+                                '${encodeURIComponent(archivo.url)}',
+                                '${encodeURIComponent(archivo.nombre)}'
+                            )">
+
+                            Descargar
+
+                        </button>
+
+                        <button
+                            class="secondary-button"
+                            type="button"
+                            onclick="compartirArchivoPaciente(
+                                '${encodeURIComponent(archivo.url)}',
+                                '${encodeURIComponent(archivo.nombre)}'
+                            )">
+
+                            Compartir
+
+                        </button>
+
+                        <button
                             class="danger-button"
                             type="button"
                             onclick="eliminarArchivoPaciente(
@@ -2589,6 +2613,113 @@ async function abrirArchivoPaciente(ruta){
 
         alert("No se pudo abrir el archivo.");
     }
+}
+
+
+async function descargarArchivoPaciente(rutaCodificada, nombreCodificado){
+
+    const ruta = decodeURIComponent(rutaCodificada);
+    const nombre = decodeURIComponent(nombreCodificado);
+
+    try{
+
+        const archivo =
+            await Database.descargarArchivo(ruta);
+
+        descargarBlobComoArchivo(
+            archivo,
+            nombre
+        );
+
+    }catch(error){
+
+        console.error(
+            "Error al descargar archivo:",
+            error
+        );
+
+        alert("No se pudo descargar el archivo.");
+    }
+}
+
+
+async function compartirArchivoPaciente(rutaCodificada, nombreCodificado){
+
+    const ruta = decodeURIComponent(rutaCodificada);
+    const nombre = decodeURIComponent(nombreCodificado) || "archivo";
+
+    try{
+
+        const blob =
+            await Database.descargarArchivo(ruta);
+
+        const archivoCompartible = new File(
+            [blob],
+            nombre,
+            {
+                type: blob.type || "application/octet-stream"
+            }
+        );
+
+        const puedeCompartirArchivo =
+            typeof navigator.share === "function" &&
+            typeof navigator.canShare === "function" &&
+            navigator.canShare({ files:[archivoCompartible] });
+
+        if(puedeCompartirArchivo){
+
+            await navigator.share({
+                files:[archivoCompartible],
+                title:nombre
+            });
+
+            return;
+        }
+
+        descargarBlobComoArchivo(blob, nombre);
+
+        alert(
+            "Este navegador no permite compartir archivos directamente.\n\n" +
+            "El documento fue descargado para que puedas adjuntarlo desde WhatsApp Web, correo u otra aplicación."
+        );
+
+    }catch(error){
+
+        if(error?.name === "AbortError"){
+            return;
+        }
+
+        console.error(
+            "Error al compartir archivo:",
+            error
+        );
+
+        alert(
+            "No se pudo compartir el archivo. Podés usar el botón Descargar e intentar adjuntarlo manualmente."
+        );
+    }
+}
+
+
+function descargarBlobComoArchivo(blob, nombre){
+
+    const urlTemporal =
+        URL.createObjectURL(blob);
+
+    const enlace =
+        document.createElement("a");
+
+    enlace.href = urlTemporal;
+    enlace.download = nombre || "archivo";
+    enlace.style.display = "none";
+
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+
+    setTimeout(() => {
+        URL.revokeObjectURL(urlTemporal);
+    }, 1000);
 }
 
 

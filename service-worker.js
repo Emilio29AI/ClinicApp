@@ -1,4 +1,4 @@
-const CACHE_VERSION = "clinicapp-v5-turnos-disponibilidad";
+const CACHE_VERSION = "clinicapp-v7-compartir-archivos";
 
 const APP_SHELL = [
     "./",

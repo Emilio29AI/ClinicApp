@@ -519,7 +519,7 @@ async actualizarPerfilMedico(datos) {
             return { disponible:true };
         }
 
-        const DURACION_CONSULTA_MINUTOS = 55;
+        const DURACION_CONSULTA_MINUTOS = 30;
         const MARGEN_ENTRE_TURNOS_MINUTOS = 5;
         const BLOQUE_TOTAL_MINUTOS =
             DURACION_CONSULTA_MINUTOS + MARGEN_ENTRE_TURNOS_MINUTOS;
@@ -1018,6 +1018,21 @@ async crearURLArchivo(ruta){
     }
 
     return data.signedUrl;
+},
+
+
+async descargarArchivo(ruta){
+
+    const { data, error } =
+        await supabaseClient.storage
+            .from("estudios")
+            .download(ruta);
+
+    if(error){
+        throw error;
+    }
+
+    return data;
 },
 
 

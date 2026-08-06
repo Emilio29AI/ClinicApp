@@ -519,6 +519,19 @@ async actualizarPerfilMedico(datos) {
             return { disponible:true };
         }
 
+        const {
+            data: { user },
+            error: userError
+        } = await supabaseClient.auth.getUser();
+
+        if(userError || !user){
+            return {
+                disponible:false,
+                error:true,
+                mensaje:"No se pudo identificar al médico para validar el horario."
+            };
+        }
+
         const DURACION_CONSULTA_MINUTOS = 30;
         const MARGEN_ENTRE_TURNOS_MINUTOS = 5;
         const BLOQUE_TOTAL_MINUTOS =
@@ -541,6 +554,7 @@ async actualizarPerfilMedico(datos) {
                     nombre
                 )
             `)
+            .eq("medico_id", user.id)
             .eq("fecha", fecha)
             .not("hora", "is", null);
 

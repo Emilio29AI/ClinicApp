@@ -1940,6 +1940,18 @@
                 () => requestAnimationFrame(resolve)
             ));
 
+            const rect = contenedor.getBoundingClientRect();
+
+            if(rect.width === 0 || rect.height === 0){
+                throw new Error(
+                    `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
+                );
+            }
+
+            if(!contenedor.innerText.trim()){
+                throw new Error("El plan alimentario no contiene texto para exportar.");
+            }
+
             const blob = await html2pdf()
                 .set({
                     margin:[10, 12, 14, 12],
@@ -1948,6 +1960,7 @@
                     html2canvas:{
                         scale:2,
                         useCORS:true,
+                        allowTaint:false,
                         backgroundColor:"#ffffff",
                         logging:false
                     },

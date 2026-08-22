@@ -906,10 +906,9 @@
 }
 
 .nutrition-plan-pdf{
-    position:fixed;
-    left:-10000px;
-    top:0;
-    width:760px;
+    position:relative;
+    width:680px;
+    box-sizing:border-box;
     padding:36px 42px;
     color:#253f4e;
     background:#fff;

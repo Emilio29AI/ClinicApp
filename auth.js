@@ -83,6 +83,8 @@ async function iniciarSesion(){
     const boton =
         document.getElementById("loginButton");
 
+    if(boton.disabled) return;
+
     boton.disabled = true;
 
     boton.textContent = "Ingresando...";
@@ -182,6 +184,8 @@ async function registrarMedico(){
     const boton =
         document.getElementById("registerButton");
 
+    if(boton.disabled) return;
+
     boton.disabled = true;
 
     boton.textContent = "Creando cuenta...";
@@ -211,7 +215,7 @@ async function registrarMedico(){
 
         mostrarMensaje(
             "registerMessage",
-            error.message
+            "No se pudo crear la cuenta. Revisá los datos o intentá nuevamente más tarde."
         );
 
         boton.disabled = false;
@@ -292,6 +296,8 @@ async function solicitarRecuperacionPassword(){
     const boton =
         document.querySelector(".forgot-password-link");
 
+    if(boton?.disabled) return;
+
     try{
 
         if(boton){
@@ -321,14 +327,10 @@ async function solicitarRecuperacionPassword(){
 
     }catch(error){
 
-        console.error(
-            "Error al recuperar contraseña:",
-            error
-        );
+        console.error("No se pudo completar la recuperación de contraseña.");
 
         alert(
-            "No se pudo enviar el correo: " +
-            (error.message || "Error desconocido")
+            "No se pudo enviar el correo. Intentá nuevamente más tarde."
         );
 
     }finally{
@@ -367,6 +369,8 @@ async function guardarNuevaPassword(event){
             "resetPasswordButton"
         );
 
+    if(button.disabled) return;
+
     message.textContent = "";
 
     if(password.length < 8){
@@ -395,11 +399,10 @@ async function guardarNuevaPassword(event){
 
     if(error){
 
-        console.error(error);
+        console.error("No se pudo actualizar la contraseña.");
 
         message.textContent =
-            "No se pudo actualizar la contraseña: " +
-            error.message;
+            "No se pudo actualizar la contraseña. Solicitá un nuevo enlace e intentá nuevamente.";
 
         button.disabled = false;
         button.textContent =

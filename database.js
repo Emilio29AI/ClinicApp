@@ -3,6 +3,147 @@ const supabaseClient = window.supabase.createClient(
     CONFIG.SUPABASE_KEY
 )
 
+const UUID_SEGURO =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function validarUUID(valor, nombre = "identificador"){
+    if(typeof valor !== "string" || !UUID_SEGURO.test(valor)){
+        throw new Error(`El ${nombre} no es válido.`);
+    }
+
+    return valor;
+}
+
+async function obtenerUsuarioAutenticado(){
+    const {
+        data: { user },
+        error
+    } = await supabaseClient.auth.getUser();
+
+    if(error || !user){
+        throw new Error("No hay un médico autenticado.");
+    }
+
+    return user;
+}
+
+function registrarErrorSeguro(contexto, error){
+    const codigo = typeof error?.code === "string"
+        ? ` (${error.code})`
+        : "";
+
+    console.error(`${contexto}${codigo}`);
+}
+
+async function asegurarPacientePropio(pacienteId, user){
+    validarUUID(pacienteId, "paciente");
+
+    const { data, error } = await supabaseClient
+        .from("pacientes")
+        .select("id")
+        .eq("id", pacienteId)
+        .eq("medico_id", user.id)
+        .maybeSingle();
+
+    if(error || !data){
+        throw new Error("El paciente no existe o no pertenece al médico autenticado.");
+    }
+
+    return data;
+}
+
+async function obtenerConsultaPropia(consultaId, user){
+    validarUUID(consultaId, "consulta");
+
+    const { data, error } = await supabaseClient
+        .from("consultas")
+        .select("id, paciente_id")
+        .eq("id", consultaId)
+        .maybeSingle();
+
+    if(error || !data){
+        throw new Error("La consulta no existe o no pertenece al médico autenticado.");
+    }
+
+    await asegurarPacientePropio(data.paciente_id, user);
+
+    return data;
+}
+
+async function obtenerArchivoPropio(archivoId, user){
+    validarUUID(archivoId, "archivo");
+
+    const { data, error } = await supabaseClient
+        .from("archivos")
+        .select("id, paciente_id, nombre, tipo, url")
+        .eq("id", archivoId)
+        .maybeSingle();
+
+    if(error || !data){
+        throw new Error("El archivo no existe o no pertenece al médico autenticado.");
+    }
+
+    await asegurarPacientePropio(data.paciente_id, user);
+
+    const prefijoEsperado = `${user.id}/${data.paciente_id}/`;
+
+    if(
+        typeof data.url !== "string" ||
+        !data.url.startsWith(prefijoEsperado) ||
+        data.url.includes("..")
+    ){
+        throw new Error("La ruta del archivo no es válida.");
+    }
+
+    return data;
+}
+
+async function validarContenidoArchivo(archivo){
+    const tiposPermitidos = {
+        "application/pdf": ["pdf"],
+        "image/jpeg": ["jpg", "jpeg"],
+        "image/png": ["png"],
+        "image/webp": ["webp"]
+    };
+
+    if(!(archivo instanceof File)){
+        throw new Error("El archivo seleccionado no es válido.");
+    }
+
+    if(!tiposPermitidos[archivo.type]){
+        throw new Error("El tipo de archivo no está permitido.");
+    }
+
+    if(archivo.size <= 0 || archivo.size > 15 * 1024 * 1024){
+        throw new Error("El archivo debe tener contenido y no superar 15 MB.");
+    }
+
+    const extension = archivo.name.split(".").pop()?.toLowerCase() || "";
+
+    if(!tiposPermitidos[archivo.type].includes(extension)){
+        throw new Error("La extensión del archivo no coincide con su tipo.");
+    }
+
+    const bytes = new Uint8Array(
+        await archivo.slice(0, 12).arrayBuffer()
+    );
+
+    const coincide = archivo.type === "application/pdf"
+        ? [0x25, 0x50, 0x44, 0x46, 0x2d]
+            .every((valor, indice) => bytes[indice] === valor)
+        : archivo.type === "image/jpeg"
+            ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+            : archivo.type === "image/png"
+                ? [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+                    .every((valor, indice) => bytes[indice] === valor)
+                : String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+                    String.fromCharCode(...bytes.slice(8, 12)) === "WEBP";
+
+    if(!coincide){
+        throw new Error("El contenido del archivo no coincide con el formato declarado.");
+    }
+}
+
 function calcularEdad(fechaNacimiento){
 
     if(!fechaNacimiento) return "-";
@@ -35,24 +176,34 @@ const Database = {
 
     async cargarPacientes(){
 
+        let user;
+
+        try{
+            user = await obtenerUsuarioAutenticado();
+        }catch(error){
+            return [];
+        }
+
         const { data, error } = await supabaseClient
             .from("pacientes")
             .select("*")
+            .eq("medico_id", user.id)
             .order("apellido");
 
         if(error){
-            console.error(error);
+            registrarErrorSeguro("No se pudieron cargar los pacientes.", error);
             return [];
         }
 
         const { data: fechasConsultas, error: fechasError } =
             await supabaseClient
                 .from("consultas")
-                .select("paciente_id, fecha")
+                .select("paciente_id, fecha, pacientes!inner(medico_id)")
+                .eq("pacientes.medico_id", user.id)
                 .order("fecha", { ascending: false });
 
         if(fechasError){
-            console.error(fechasError);
+            registrarErrorSeguro("No se pudieron cargar las fechas de consulta.", fechasError);
         }
 
         const ultimaConsultaPorPaciente = new Map();
@@ -136,9 +287,7 @@ const Database = {
 
     async agregarPaciente(datos) {
 
-    const {data: { user }} = await supabaseClient.auth.getUser();
-
-        if(!user){throw new Error("No hay un médico autenticado.");}
+    const user = await obtenerUsuarioAutenticado();
 
     const { data, error } = await supabaseClient
         .from("pacientes")
@@ -190,9 +339,9 @@ const Database = {
 
     if (error) {
 
-        console.error(error);
+        registrarErrorSeguro("No se pudo guardar el paciente.", error);
 
-        alert("No se pudo guardar el paciente: " + error.message);
+        alert("No se pudo guardar el paciente.");
 
         return null;
 
@@ -203,6 +352,9 @@ const Database = {
     },
     
     async editarPaciente(datos){
+
+    validarUUID(datos.id, "paciente");
+    const user = await obtenerUsuarioAutenticado();
 
     const { data, error } = await supabaseClient
         .from("pacientes")
@@ -250,16 +402,16 @@ const Database = {
 
         })
         .eq("id", datos.id)
+        .eq("medico_id", user.id)
         .select()
         .single();
 
     if(error){
 
-        console.error(error);
+        registrarErrorSeguro("No se pudo actualizar el paciente.", error);
 
         alert(
-            "No se pudo actualizar el paciente: " +
-            error.message
+            "No se pudo actualizar el paciente."
         );
 
         return null;
@@ -272,14 +424,18 @@ const Database = {
 
     async eliminarPaciente(id){
 
+    validarUUID(id, "paciente");
+    const user = await obtenerUsuarioAutenticado();
+
     const { error } = await supabaseClient
         .from("pacientes")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("medico_id", user.id);
 
     if(error){
-        console.error(error);
-        alert(error.message);
+        registrarErrorSeguro("No se pudo eliminar el paciente.", error);
+        alert("No se pudo eliminar el paciente.");
         return false;
     }
 
@@ -288,6 +444,9 @@ const Database = {
 },
     
     async agregarConsulta(datos){
+
+    const user = await obtenerUsuarioAutenticado();
+    await asegurarPacientePropio(datos.pacienteId, user);
 
     const disponibilidad =
         await this.validarDisponibilidadTurno({
@@ -347,11 +506,10 @@ const Database = {
 
     if(error){
 
-        console.error(error);
+        registrarErrorSeguro("No se pudo guardar la consulta.", error);
 
         alert(
-            "No se pudo guardar la evolución: " +
-            error.message
+            "No se pudo guardar la evolución."
         );
 
         return null;
@@ -366,6 +524,9 @@ const Database = {
     
     async cargarConsultas(pacienteId){
 
+        const user = await obtenerUsuarioAutenticado();
+        await asegurarPacientePropio(pacienteId, user);
+
         const { data, error } = await supabaseClient
 
             .from("consultas")
@@ -378,7 +539,7 @@ const Database = {
 
         if(error){
 
-            console.error(error);
+            registrarErrorSeguro("No se pudieron cargar las consultas.", error);
 
             return [];
 
@@ -389,6 +550,8 @@ const Database = {
     },
 
     async cargarProximosTurnos(){
+
+        const user = await obtenerUsuarioAutenticado();
 
         const hoy = new Date().toLocaleDateString("en-CA");
 
@@ -409,6 +572,7 @@ const Database = {
                     obra_social
                 )
             `)
+            .eq("medico_id", user.id)
             .gte("fecha", hoy)
             .order("fecha", { ascending:true })
             .order("hora", {
@@ -417,7 +581,7 @@ const Database = {
             });
 
         if(error){
-            console.error("Error al cargar próximos turnos:", error);
+            registrarErrorSeguro("No se pudieron cargar los próximos turnos.", error);
             return [];
         }
 
@@ -465,7 +629,7 @@ const Database = {
         .single();
 
     if (error) {
-        console.error("Error al cargar el perfil:", error);
+        registrarErrorSeguro("No se pudo cargar el perfil.", error);
         throw error;
     }
 
@@ -500,7 +664,7 @@ async actualizarPerfilMedico(datos) {
         .single();
 
     if (error) {
-        console.error("Error al actualizar el perfil:", error);
+        registrarErrorSeguro("No se pudo actualizar el perfil.", error);
         throw error;
     }
 
@@ -561,7 +725,7 @@ async actualizarPerfilMedico(datos) {
         const { data, error } = await consulta;
 
         if(error){
-            console.error("Error al validar disponibilidad del turno:", error);
+            registrarErrorSeguro("No se pudo validar la disponibilidad del turno.", error);
             return {
                 disponible:false,
                 error:true,
@@ -623,12 +787,18 @@ async actualizarPerfilMedico(datos) {
 
     async agregarTurno(datos){
 
-        const { data: { user } } =
-            await supabaseClient.auth.getUser();
+        const user = await obtenerUsuarioAutenticado();
+        await asegurarPacientePropio(datos.pacienteId, user);
 
-        if(!user){
-            alert("No hay un médico autenticado.");
-            return null;
+        if(datos.consultaOrigenId){
+            const consulta = await obtenerConsultaPropia(
+                datos.consultaOrigenId,
+                user
+            );
+
+            if(consulta.paciente_id !== datos.pacienteId){
+                throw new Error("La consulta no corresponde al paciente indicado.");
+            }
         }
 
         const disponibilidad =
@@ -656,8 +826,8 @@ async actualizarPerfilMedico(datos) {
             .single();
 
         if(error){
-            console.error("Error al guardar el turno:", error);
-            alert("No se pudo guardar el turno: " + error.message);
+            registrarErrorSeguro("No se pudo guardar el turno.", error);
+            alert("No se pudo guardar el turno.");
             return null;
         }
 
@@ -667,15 +837,19 @@ async actualizarPerfilMedico(datos) {
 
     async cargarTurnoPorId(id){
 
+        validarUUID(id, "turno");
+        const user = await obtenerUsuarioAutenticado();
+
         const { data, error } = await supabaseClient
             .from("turnos")
             .select("*")
             .eq("id", id)
+            .eq("medico_id", user.id)
             .single();
 
         if(error){
-            console.error("Error al cargar el turno:", error);
-            alert("No se pudo cargar el turno: " + error.message);
+            registrarErrorSeguro("No se pudo cargar el turno.", error);
+            alert("No se pudo cargar el turno.");
             return null;
         }
 
@@ -684,6 +858,10 @@ async actualizarPerfilMedico(datos) {
     },
 
     async actualizarTurno(id, datos){
+
+        validarUUID(id, "turno");
+        const user = await obtenerUsuarioAutenticado();
+        await asegurarPacientePropio(datos.pacienteId, user);
 
         const turnoActual = await this.cargarTurnoPorId(id);
         if(!turnoActual) return null;
@@ -709,12 +887,13 @@ async actualizarPerfilMedico(datos) {
                 observaciones: datos.observaciones || null
             })
             .eq("id", id)
+            .eq("medico_id", user.id)
             .select()
             .single();
 
         if(error){
-            console.error("Error al actualizar el turno:", error);
-            alert("No se pudo actualizar el turno: " + error.message);
+            registrarErrorSeguro("No se pudo actualizar el turno.", error);
+            alert("No se pudo actualizar el turno.");
             return null;
         }
 
@@ -725,10 +904,11 @@ async actualizarPerfilMedico(datos) {
                     proximo_control: datos.fecha,
                     proximo_control_hora: datos.hora || null
                 })
-                .eq("id", turnoActual.consulta_origen_id);
+                .eq("id", turnoActual.consulta_origen_id)
+                .eq("paciente_id", turnoActual.paciente_id);
 
             if(consultaError){
-                console.error("Error al sincronizar la consulta:", consultaError);
+                registrarErrorSeguro("No se pudo sincronizar la consulta.", consultaError);
                 alert("El turno se actualizó, pero no se pudo sincronizar la consulta de origen.");
             }
         }
@@ -738,6 +918,9 @@ async actualizarPerfilMedico(datos) {
     },
 
     async eliminarTurno(id){
+
+        validarUUID(id, "turno");
+        const user = await obtenerUsuarioAutenticado();
 
         const turnoActual = await this.cargarTurnoPorId(id);
         if(!turnoActual) return false;
@@ -749,10 +932,11 @@ async actualizarPerfilMedico(datos) {
                     proximo_control: null,
                     proximo_control_hora: null
                 })
-                .eq("id", turnoActual.consulta_origen_id);
+                .eq("id", turnoActual.consulta_origen_id)
+                .eq("paciente_id", turnoActual.paciente_id);
 
             if(consultaError){
-                console.error("Error al limpiar la consulta de origen:", consultaError);
+                registrarErrorSeguro("No se pudo limpiar la consulta de origen.", consultaError);
                 alert("No se pudo desvincular el turno de la consulta.");
                 return false;
             }
@@ -761,11 +945,12 @@ async actualizarPerfilMedico(datos) {
         const { error } = await supabaseClient
             .from("turnos")
             .delete()
-            .eq("id", id);
+            .eq("id", id)
+            .eq("medico_id", user.id);
 
         if(error){
-            console.error("Error al eliminar el turno:", error);
-            alert("No se pudo eliminar el turno: " + error.message);
+            registrarErrorSeguro("No se pudo eliminar el turno.", error);
+            alert("No se pudo eliminar el turno.");
             return false;
         }
 
@@ -777,22 +962,22 @@ async actualizarPerfilMedico(datos) {
 
         if(!consulta?.id) return;
 
+        const user = await obtenerUsuarioAutenticado();
+        await obtenerConsultaPropia(consulta.id, user);
+        await asegurarPacientePropio(consulta.paciente_id, user);
+
         if(!consulta.proximo_control){
             const { error } = await supabaseClient
                 .from("turnos")
                 .delete()
-                .eq("consulta_origen_id", consulta.id);
+                .eq("consulta_origen_id", consulta.id)
+                .eq("medico_id", user.id);
 
             if(error){
-                console.error("Error al eliminar el turno vinculado:", error);
+                registrarErrorSeguro("No se pudo eliminar el turno vinculado.", error);
             }
             return;
         }
-
-        const { data: { user } } =
-            await supabaseClient.auth.getUser();
-
-        if(!user) return;
 
         const { error } = await supabaseClient
             .from("turnos")
@@ -807,7 +992,7 @@ async actualizarPerfilMedico(datos) {
             });
 
         if(error){
-            console.error("Error al sincronizar el próximo turno:", error);
+            registrarErrorSeguro("No se pudo sincronizar el próximo turno.", error);
             alert("La consulta se guardó, pero no se pudo actualizar la Agenda.");
         }
 
@@ -815,22 +1000,22 @@ async actualizarPerfilMedico(datos) {
 
 async cargarConsultaPorId(id) {
 
+    const user = await obtenerUsuarioAutenticado();
+    const consultaPropia = await obtenerConsultaPropia(id, user);
+
     const { data, error } = await supabaseClient
         .from("consultas")
         .select("*")
         .eq("id", id)
+        .eq("paciente_id", consultaPropia.paciente_id)
         .single();
 
     if (error) {
 
-        console.error(
-            "Error al cargar la evolución:",
-            error
-        );
+        registrarErrorSeguro("No se pudo cargar la evolución.", error);
 
         alert(
-            "No se pudo cargar la evolución: " +
-            error.message
+            "No se pudo cargar la evolución."
         );
 
         return null;
@@ -841,6 +1026,9 @@ async cargarConsultaPorId(id) {
 
 
 async actualizarConsulta(id, datos) {
+
+    const user = await obtenerUsuarioAutenticado();
+    const consultaPropia = await obtenerConsultaPropia(id, user);
 
     const disponibilidad =
         await this.validarDisponibilidadTurno({
@@ -895,19 +1083,16 @@ async actualizarConsulta(id, datos) {
 
         })
         .eq("id", id)
+        .eq("paciente_id", consultaPropia.paciente_id)
         .select()
         .single();
 
     if (error) {
 
-        console.error(
-            "Error al actualizar la evolución:",
-            error
-        );
+        registrarErrorSeguro("No se pudo actualizar la evolución.", error);
 
         alert(
-            "No se pudo actualizar la evolución: " +
-            error.message
+            "No se pudo actualizar la evolución."
         );
 
         return null;
@@ -920,21 +1105,21 @@ async actualizarConsulta(id, datos) {
 
 async eliminarConsulta(id) {
 
+    const user = await obtenerUsuarioAutenticado();
+    const consultaPropia = await obtenerConsultaPropia(id, user);
+
     const { error } = await supabaseClient
         .from("consultas")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("paciente_id", consultaPropia.paciente_id);
 
     if (error) {
 
-        console.error(
-            "Error al eliminar la evolución:",
-            error
-        );
+        registrarErrorSeguro("No se pudo eliminar la evolución.", error);
 
         alert(
-            "No se pudo eliminar la evolución: " +
-            error.message
+            "No se pudo eliminar la evolución."
         );
 
         return false;
@@ -945,19 +1130,21 @@ async eliminarConsulta(id) {
 
 async subirArchivo(pacienteId, archivo, descripcion = ""){
 
-    const {
-        data: { user },
-        error: userError
-    } = await supabaseClient.auth.getUser();
+    const user = await obtenerUsuarioAutenticado();
+    await asegurarPacientePropio(pacienteId, user);
+    await validarContenidoArchivo(archivo);
 
-    if(userError || !user){
-        throw new Error("No se pudo identificar al médico.");
-    }
-
-    const nombreSeguro = archivo.name
+    const extension = archivo.name.split(".").pop().toLowerCase();
+    const baseSegura = archivo.name
+        .slice(0, -(extension.length + 1))
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9._-]/g, "-");
+        .replace(/[^a-zA-Z0-9_-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 100) || "archivo";
+
+    const nombreSeguro = `${baseSegura}.${extension}`;
 
     const ruta =
         `${user.id}/${pacienteId}/${crypto.randomUUID()}-${nombreSeguro}`;
@@ -1003,6 +1190,9 @@ async subirArchivo(pacienteId, archivo, descripcion = ""){
 
 async cargarArchivos(pacienteId){
 
+    const user = await obtenerUsuarioAutenticado();
+    await asegurarPacientePropio(pacienteId, user);
+
     const { data, error } =
         await supabaseClient
             .from("archivos")
@@ -1020,12 +1210,15 @@ async cargarArchivos(pacienteId){
 },
 
 
-async crearURLArchivo(ruta){
+async crearURLArchivo(archivoId){
+
+    const user = await obtenerUsuarioAutenticado();
+    const archivo = await obtenerArchivoPropio(archivoId, user);
 
     const { data, error } =
         await supabaseClient.storage
             .from("estudios")
-            .createSignedUrl(ruta, 300);
+            .createSignedUrl(archivo.url, 300);
 
     if(error){
         throw error;
@@ -1035,27 +1228,37 @@ async crearURLArchivo(ruta){
 },
 
 
-async descargarArchivo(ruta){
+async descargarArchivo(archivoId){
+
+    const user = await obtenerUsuarioAutenticado();
+    const archivo = await obtenerArchivoPropio(archivoId, user);
 
     const { data, error } =
         await supabaseClient.storage
             .from("estudios")
-            .download(ruta);
+            .download(archivo.url);
 
     if(error){
         throw error;
     }
 
-    return data;
+    return {
+        blob: data,
+        nombre: archivo.nombre,
+        tipo: archivo.tipo
+    };
 },
 
 
-async eliminarArchivo(id, ruta){
+async eliminarArchivo(id){
+
+    const user = await obtenerUsuarioAutenticado();
+    const archivo = await obtenerArchivoPropio(id, user);
 
     const { error: storageError } =
         await supabaseClient.storage
             .from("estudios")
-            .remove([ruta]);
+            .remove([archivo.url]);
 
     if(storageError){
         throw storageError;
@@ -1065,7 +1268,8 @@ async eliminarArchivo(id, ruta){
         await supabaseClient
             .from("archivos")
             .delete()
-            .eq("id", id);
+            .eq("id", archivo.id)
+            .eq("paciente_id", archivo.paciente_id);
 
     if(databaseError){
         throw databaseError;

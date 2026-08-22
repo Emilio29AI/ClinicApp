@@ -174,6 +174,7 @@ function abrirModalNuevoPaciente() {
                 </button>
 
                 <button
+                    id="guardarNuevoPacienteButton"
                     class="action-button"
                     type="button"
                     onclick="guardarNuevoPaciente()">
@@ -206,6 +207,10 @@ function cerrarModal() {
 
 async function guardarNuevoPaciente() {
 
+    const boton = document.getElementById("guardarNuevoPacienteButton");
+
+    if(boton?.disabled) return;
+
     const apellido =
         document.getElementById("apellido").value.trim();
 
@@ -220,7 +225,13 @@ async function guardarNuevoPaciente() {
 
     }
 
-    const guardado = await Database.agregarPaciente({
+    boton.disabled = true;
+    boton.textContent = "Guardando...";
+
+    let guardado;
+
+    try{
+        guardado = await Database.agregarPaciente({
 
         apellido,
 
@@ -271,7 +282,17 @@ async function guardarNuevoPaciente() {
         observaciones:
             document.getElementById("observaciones").value.trim()
 
-    });
+        });
+    }catch(error){
+        console.error("No se pudo guardar el paciente.");
+        alert("No se pudo guardar el paciente. Intentá nuevamente.");
+        return;
+    }finally{
+        if(boton.isConnected){
+            boton.disabled = false;
+            boton.textContent = "Guardar";
+        }
+    }
 
     if (!guardado) return;
 
@@ -279,10 +300,7 @@ async function guardarNuevoPaciente() {
 
     mostrarListadoPrincipalPacientes();
 
-    const nuevoPaciente = pacientes.find(p =>
-        p.apellido === apellido &&
-        p.nombre === nombre
-    );
+    const nuevoPaciente = pacientes.find(p => p.id === guardado.id);
 
     cerrarModal();
 
@@ -527,6 +545,11 @@ async function abrirEdicionEvolucion(id){
 
     if(!consulta) return;
 
+    if(!pacienteActual || consulta.paciente_id !== pacienteActual.id){
+        alert("La consulta seleccionada no corresponde al paciente actual.");
+        return;
+    }
+
     const modalDetalle =
         document.getElementById("modalOverlay");
 
@@ -734,6 +757,8 @@ async function guardarEvolucion(){
 
     let guardado;
 
+    try{
+
     if(evolucionEditandoId){
 
         guardado =
@@ -747,6 +772,11 @@ async function guardarEvolucion(){
         guardado =
             await Database.agregarConsulta(datos);
 
+    }
+
+    }catch(error){
+        console.error("No se pudo guardar la consulta.");
+        guardado = null;
     }
 
     if(!guardado){
@@ -981,6 +1011,7 @@ function abrirModalEditarPaciente(){
                 </button>
 
                 <button
+                    id="guardarEdicionPacienteButton"
                     class="action-button"
                     onclick="guardarEdicionPaciente()">
 
@@ -1000,6 +1031,10 @@ function abrirModalEditarPaciente(){
 
 async function guardarEdicionPaciente(){
 
+    const boton = document.getElementById("guardarEdicionPacienteButton");
+
+    if(boton?.disabled) return;
+
     const apellido =
         document.getElementById("editApellido").value.trim();
 
@@ -1014,7 +1049,13 @@ async function guardarEdicionPaciente(){
 
     }
 
-    const actualizado = await Database.editarPaciente({
+    boton.disabled = true;
+    boton.textContent = "Actualizando...";
+
+    let actualizado;
+
+    try{
+        actualizado = await Database.editarPaciente({
 
         id: pacienteActual.id,
 
@@ -1067,7 +1108,17 @@ async function guardarEdicionPaciente(){
         observaciones:
             document.getElementById("editObservaciones").value.trim()
 
-    });
+        });
+    }catch(error){
+        console.error("No se pudo actualizar el paciente.");
+        alert("No se pudo actualizar el paciente. Intentá nuevamente.");
+        return;
+    }finally{
+        if(boton.isConnected){
+            boton.disabled = false;
+            boton.textContent = "Actualizar";
+        }
+    }
 
     if(!actualizado) return;
 
@@ -1270,22 +1321,13 @@ async function exportarFichaPDF(){
 
     if(!pacienteActual) return;
 
-    const { data: consultas, error } =
-        await supabaseClient
-            .from("consultas")
-            .select("*")
-            .eq("paciente_id", pacienteActual.id)
-            .order("fecha", { ascending:false });
+    let consultas;
 
-    if(error){
-
-        console.error(error);
-
-        alert(
-            "No se pudo preparar el PDF: " +
-            error.message
-        );
-
+    try{
+        consultas = await Database.cargarConsultas(pacienteActual.id);
+    }catch(error){
+        console.error("No se pudo preparar la historia clínica.");
+        alert("No se pudo preparar el PDF. Intentá nuevamente.");
         return;
     }
 
@@ -1789,6 +1831,8 @@ async function guardarArchivoPaciente(){
     const boton =
         document.getElementById("guardarArchivoButton");
 
+    if(boton?.disabled) return;
+
     const archivo = input.files[0];
 
     mensaje.textContent = "";
@@ -1843,14 +1887,19 @@ async function guardarArchivoPaciente(){
 
     }catch(error){
 
-        console.error(
-            "Error al adjuntar archivo:",
-            error
-        );
+        console.error("No se pudo adjuntar el archivo.");
 
-        mensaje.textContent =
-            "No se pudo adjuntar el archivo: " +
-            (error.message || "Error desconocido");
+        const mensajesValidacion = [
+            "El archivo seleccionado no es válido.",
+            "El tipo de archivo no está permitido.",
+            "El archivo debe tener contenido y no superar 15 MB.",
+            "La extensión del archivo no coincide con su tipo.",
+            "El contenido del archivo no coincide con el formato declarado."
+        ];
+
+        mensaje.textContent = mensajesValidacion.includes(error?.message)
+            ? error.message
+            : "No se pudo adjuntar el archivo. Intentá nuevamente.";
 
         boton.disabled = false;
         boton.textContent = "Adjuntar archivo";
@@ -1993,6 +2042,8 @@ async function generarYCompartirIndicaciones(){
     const mensaje = document.getElementById("indicacionesMensaje");
     const boton = document.getElementById("generarIndicacionesButton");
 
+    if(boton?.disabled) return;
+
     mensaje.textContent = "";
 
     if(!titulo){
@@ -2051,11 +2102,10 @@ async function generarYCompartirIndicaciones(){
 
     }catch(error){
 
-        console.error("Error al generar indicaciones:", error);
+        console.error("No se pudo generar o guardar el documento.");
 
         mensaje.textContent =
-            "No se pudo generar o guardar el documento: " +
-            (error.message || "Error desconocido");
+            "No se pudo generar o guardar el documento. Intentá nuevamente.";
 
         boton.disabled = false;
         boton.textContent = "Generar y compartir";
@@ -2249,7 +2299,7 @@ async function compartirPDFIndicaciones(archivo, nombreArchivo){
             return;
         }catch(error){
             if(error?.name === "AbortError") return;
-            console.error("Error al abrir el panel para compartir:", error);
+            console.error("No se pudo abrir el panel para compartir.");
         }
     }
 

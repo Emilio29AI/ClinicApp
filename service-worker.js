@@ -1,4 +1,4 @@
-const CACHE_VERSION = "clinicapp-v9-indicaciones-corregidas";
+const CACHE_VERSION = "clinicapp-v11-planes-alimentarios";
 
 const APP_SHELL = [
     "./",
@@ -6,11 +6,13 @@ const APP_SHELL = [
     "./login.html",
     "./restablecer-password.html",
     "./style.css",
+    "./nutrition-plans.css",
     "./config.js",
     "./database.js",
     "./auth.js",
     "./app.js",
     "./components/modal.js",
+    "./components/nutrition-plans.js",
     "./manifest.json",
     "./icons/icon-192.png",
     "./icons/icon-512.png"

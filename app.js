@@ -119,13 +119,20 @@ function formatearFecha(fecha){
 
     if(!fecha) return "-";
 
-    const partes = fecha.split("-");
+    const fechaSimple =
+        /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
 
-    if(partes.length === 3){
-        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    if(fechaSimple){
+        return `${fechaSimple[3]}/${fechaSimple[2]}/${fechaSimple[1]}`;
     }
 
-    return new Date(fecha).toLocaleDateString("es-AR");
+    const fechaCompleta = new Date(fecha);
+
+    if(Number.isNaN(fechaCompleta.getTime())){
+        return "-";
+    }
+
+    return fechaCompleta.toLocaleDateString("es-AR");
 
 }
 
@@ -566,6 +573,10 @@ function cerrarModalTurno(){
 
 async function guardarTurnoDesdeAgenda(turnoId = ""){
 
+    const boton = document.getElementById("guardarTurnoButton");
+
+    if(boton?.disabled) return;
+
     const pacienteId =
         document.getElementById("turnoPaciente")?.value || "";
 
@@ -583,7 +594,6 @@ async function guardarTurnoDesdeAgenda(turnoId = ""){
         return;
     }
 
-    const boton = document.getElementById("guardarTurnoButton");
     if(boton){
         boton.disabled = true;
         boton.textContent = turnoId ? "Actualizando..." : "Guardando...";
@@ -611,8 +621,8 @@ async function guardarTurnoDesdeAgenda(turnoId = ""){
 
     }catch(error){
 
-        console.error("Error inesperado al guardar el turno:", error);
-        alert("No se pudo guardar el turno: " + error.message);
+        console.error("No se pudo guardar el turno.");
+        alert("No se pudo guardar el turno. Intentá nuevamente.");
 
     }finally{
 
@@ -917,6 +927,15 @@ async function mostrarPaciente(p){
         </div>
 
         <div class="patient-actions">
+
+            <button
+                class="secondary-button nutrition-plans-button"
+                type="button"
+                onclick="abrirModuloPlanesAlimentarios()">
+
+                Planes alimentarios
+
+            </button>
 
             <button
                 class="secondary-button send-instructions-button"
@@ -1508,7 +1527,7 @@ async function cargarPerfilMedico() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error("No se pudo cargar el perfil profesional.");
 
         document.getElementById(
             "doctorProfileName"
@@ -1756,6 +1775,8 @@ async function guardarPerfilMedico() {
     const boton =
         document.getElementById("saveDoctorProfileButton");
 
+    if(boton.disabled) return;
+
     boton.disabled = true;
     boton.textContent = "Guardando...";
 
@@ -1790,7 +1811,7 @@ async function guardarPerfilMedico() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error("No se pudo actualizar el perfil profesional.");
 
         mensaje.textContent =
             "No se pudo actualizar el perfil.";
@@ -1868,15 +1889,8 @@ async function iniciar(){
     pacientes =
         await Database.cargarPacientes();
 
-    console.log("Cargando agenda...");
-
     proximosTurnos =
         await Database.cargarProximosTurnos();
-
-    console.log(
-        "Próximos turnos:",
-        proximosTurnos
-    );
 
     mostrarListadoPrincipalPacientes();
     mostrarAgendaInicial();
@@ -2164,6 +2178,8 @@ function crearDatoConsulta(etiqueta, valor){
 
 async function eliminarPaciente(){
 
+    if(!pacienteActual) return;
+
     if(!confirm("¿Está seguro que desea borrar a este paciente?\n\nEsta acción no se puede deshacer.")) return;
 
     await Database.eliminarPaciente(
@@ -2173,9 +2189,6 @@ async function eliminarPaciente(){
     pacientes = await Database.cargarPacientes();
 
     proximosTurnos = await Database.cargarProximosTurnos();
-
-    console.log("Próximos turnos:", proximosTurnos
-    );
 
     mostrarListadoPrincipalPacientes();
 
@@ -2194,6 +2207,11 @@ async function exportarEvolucionPDF(id, numeroConsulta){
 
     if(!pacienteActual){
         alert("No hay un paciente seleccionado.");
+        return;
+    }
+
+    if(consulta.paciente_id !== pacienteActual.id){
+        alert("La consulta seleccionada no corresponde al paciente actual.");
         return;
     }
 
@@ -2485,7 +2503,7 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
         
 
         contenedor.innerHTML =
-            archivos.map(archivo => `
+            archivos.map((archivo, indice) => `
 
                 <article class="patient-file-card">
 
@@ -2522,7 +2540,8 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
                         <button
                             class="secondary-button"
                             type="button"
-                            onclick="abrirArchivoPaciente('${archivo.url}')">
+                            data-file-action="open"
+                            data-file-index="${indice}">
 
                             Ver
 
@@ -2531,10 +2550,8 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
                         <button
                             class="secondary-button"
                             type="button"
-                            onclick="descargarArchivoPaciente(
-                                '${encodeURIComponent(archivo.url)}',
-                                '${encodeURIComponent(archivo.nombre)}'
-                            )">
+                            data-file-action="download"
+                            data-file-index="${indice}">
 
                             Descargar
 
@@ -2543,10 +2560,8 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
                         <button
                             class="secondary-button"
                             type="button"
-                            onclick="compartirArchivoPaciente(
-                                '${encodeURIComponent(archivo.url)}',
-                                '${encodeURIComponent(archivo.nombre)}'
-                            )">
+                            data-file-action="share"
+                            data-file-index="${indice}">
 
                             Compartir
 
@@ -2555,10 +2570,8 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
                         <button
                             class="danger-button"
                             type="button"
-                            onclick="eliminarArchivoPaciente(
-                                '${archivo.id}',
-                                '${archivo.url}'
-                            )">
+                            data-file-action="delete"
+                            data-file-index="${indice}">
 
                             Eliminar
 
@@ -2570,12 +2583,40 @@ async function cargarArchivosPaciente(pacienteId = pacienteActual?.id){
 
             `).join("");
 
+        contenedor.onclick = async evento => {
+            const boton = evento.target.closest("[data-file-action]");
+
+            if(!boton || !contenedor.contains(boton) || boton.disabled){
+                return;
+            }
+
+            const indice = Number(boton.dataset.fileIndex);
+            const archivo = archivos[indice];
+
+            if(!archivo?.id) return;
+
+            boton.disabled = true;
+
+            try{
+                if(boton.dataset.fileAction === "open"){
+                    await abrirArchivoPaciente(archivo.id);
+                }else if(boton.dataset.fileAction === "download"){
+                    await descargarArchivoPaciente(archivo.id);
+                }else if(boton.dataset.fileAction === "share"){
+                    await compartirArchivoPaciente(archivo.id);
+                }else if(boton.dataset.fileAction === "delete"){
+                    await eliminarArchivoPaciente(archivo.id);
+                }
+            }finally{
+                if(boton.isConnected){
+                    boton.disabled = false;
+                }
+            }
+        };
+
     }catch(error){
 
-        console.error(
-            "Error al cargar archivos:",
-            error
-        );
+        console.error("No se pudieron cargar los archivos.");
 
         contenedor.innerHTML = `
             <div class="timeline-empty">
@@ -2600,12 +2641,12 @@ function obtenerIconoArchivo(tipo){
 }
 
 
-async function abrirArchivoPaciente(ruta){
+async function abrirArchivoPaciente(archivoId){
 
     try{
 
         const url =
-            await Database.crearURLArchivo(ruta);
+            await Database.crearURLArchivo(archivoId);
 
         window.open(
             url,
@@ -2615,52 +2656,42 @@ async function abrirArchivoPaciente(ruta){
 
     }catch(error){
 
-        console.error(
-            "Error al abrir archivo:",
-            error
-        );
+        console.error("No se pudo abrir el archivo.");
 
         alert("No se pudo abrir el archivo.");
     }
 }
 
 
-async function descargarArchivoPaciente(rutaCodificada, nombreCodificado){
-
-    const ruta = decodeURIComponent(rutaCodificada);
-    const nombre = decodeURIComponent(nombreCodificado);
+async function descargarArchivoPaciente(archivoId){
 
     try{
 
-        const archivo =
-            await Database.descargarArchivo(ruta);
+        const { blob, nombre } =
+            await Database.descargarArchivo(archivoId);
 
         descargarBlobComoArchivo(
-            archivo,
+            blob,
             nombre
         );
 
     }catch(error){
 
-        console.error(
-            "Error al descargar archivo:",
-            error
-        );
+        console.error("No se pudo descargar el archivo.");
 
         alert("No se pudo descargar el archivo.");
     }
 }
 
 
-async function compartirArchivoPaciente(rutaCodificada, nombreCodificado){
-
-    const ruta = decodeURIComponent(rutaCodificada);
-    const nombre = decodeURIComponent(nombreCodificado) || "archivo";
+async function compartirArchivoPaciente(archivoId){
 
     try{
 
-        const blob =
-            await Database.descargarArchivo(ruta);
+        const { blob, nombre: nombreOriginal } =
+            await Database.descargarArchivo(archivoId);
+
+        const nombre = nombreOriginal || "archivo";
 
         const archivoCompartible = new File(
             [blob],
@@ -2698,10 +2729,7 @@ async function compartirArchivoPaciente(rutaCodificada, nombreCodificado){
             return;
         }
 
-        console.error(
-            "Error al compartir archivo:",
-            error
-        );
+        console.error("No se pudo compartir el archivo.");
 
         alert(
             "No se pudo compartir el archivo. Podés usar el botón Descargar e intentar adjuntarlo manualmente."
@@ -2712,6 +2740,13 @@ async function compartirArchivoPaciente(rutaCodificada, nombreCodificado){
 
 function descargarBlobComoArchivo(blob, nombre){
 
+    const nombreSeguro = String(nombre || "archivo")
+        .normalize("NFC")
+        .replace(/[\u0000-\u001f\u007f\\/:*?"<>|]/g, "-")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 180) || "archivo";
+
     const urlTemporal =
         URL.createObjectURL(blob);
 
@@ -2719,7 +2754,7 @@ function descargarBlobComoArchivo(blob, nombre){
         document.createElement("a");
 
     enlace.href = urlTemporal;
-    enlace.download = nombre || "archivo";
+    enlace.download = nombreSeguro;
     enlace.style.display = "none";
 
     document.body.appendChild(enlace);
@@ -2732,7 +2767,7 @@ function descargarBlobComoArchivo(blob, nombre){
 }
 
 
-async function eliminarArchivoPaciente(id, ruta){
+async function eliminarArchivoPaciente(id){
 
     const confirmar = window.confirm(
         "¿Eliminar este archivo?\n\nEsta acción no se puede deshacer."
@@ -2742,23 +2777,16 @@ async function eliminarArchivoPaciente(id, ruta){
 
     try{
 
-        await Database.eliminarArchivo(
-            id,
-            ruta
-        );
+        await Database.eliminarArchivo(id);
 
         await cargarArchivosPaciente();
 
     }catch(error){
 
-        console.error(
-            "Error al eliminar archivo:",
-            error
-        );
+        console.error("No se pudo eliminar el archivo.");
 
         alert(
-            "No se pudo eliminar el archivo: " +
-            (error.message || "Error desconocido")
+            "No se pudo eliminar el archivo. Intentá nuevamente."
         );
     }
 }
@@ -2930,19 +2958,10 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
     }catch(error){
 
-        console.error(
-            "Error completo al generar PDF móvil:",
-            error
-        );
-
-        const detalleError =
-            error?.message ||
-            error?.toString() ||
-            "Error desconocido";
+        console.error("No se pudo generar el PDF móvil.");
 
         alert(
-            "No se pudo generar el PDF.\n\n" +
-            detalleError
+            "No se pudo generar el PDF. Intentá nuevamente."
         );
 
     }finally{

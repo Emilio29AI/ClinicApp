@@ -1,4 +1,4 @@
-const CACHE_VERSION = "clinicapp-v11.1-pdf-planes-corregido";
+const CACHE_VERSION = "clinicapp-v11.2-pdf-validado";
 
 const APP_SHELL = [
     "./",

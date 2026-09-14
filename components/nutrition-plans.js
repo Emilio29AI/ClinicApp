@@ -71,6 +71,8 @@
         cargando:false
     };
 
+    let exportandoPDF = false;
+
     const DatosPlanesAlimentarios = {
 
         async verificarDisponibilidad(){
@@ -1284,13 +1286,6 @@
                     <button
                         class="secondary-button"
                         type="button"
-                        onclick="NutritionPlansUI.exportarBorrador()"
-                        ${estado.vistaPrevia ? "disabled" : ""}>
-                        Vista PDF
-                    </button>
-                    <button
-                        class="secondary-button"
-                        type="button"
                         onclick="NutritionPlansUI.volverAPlanes()">
                         Cancelar
                     </button>
@@ -1860,19 +1855,35 @@
         return false;
     }
 
-    async function exportarBorrador(){
-        capturarCamposPlan();
-        if(!estado.borrador) return;
-        await generarPDFPlan(estado.borrador, false);
-    }
-
     async function exportarPlan(id){
+        if(exportandoPDF) return;
+
         const plan = estado.planes.find(item => item.id === id);
-        if(!plan) return;
-        await generarPDFPlan(plan, true);
+
+        if(!plan?.id || estado.vistaPrevia){
+            alert("Guardá el plan antes de generar su PDF.");
+            return;
+        }
+
+        const botonesPDF = document.querySelectorAll(
+            '.nutrition-card-actions button[onclick*="exportarPlan"]'
+        );
+
+        try{
+            exportandoPDF = true;
+            botonesPDF.forEach(boton => {
+                boton.disabled = true;
+            });
+            await generarPDFPlan(plan);
+        }finally{
+            exportandoPDF = false;
+            botonesPDF.forEach(boton => {
+                boton.disabled = false;
+            });
+        }
     }
 
-    async function generarPDFPlan(plan, permitirGuardar){
+    async function generarPDFPlan(plan){
         if(typeof html2pdf !== "function"){
             alert("No se pudo iniciar el generador de PDF.");
             return;
@@ -1936,24 +1947,9 @@
         document.body.appendChild(contenedor);
 
         try{
-            await new Promise(resolve => requestAnimationFrame(
-                () => requestAnimationFrame(resolve)
-            ));
-
-            const rect = contenedor.getBoundingClientRect();
-
-            if(rect.width === 0 || rect.height === 0){
-                throw new Error(
-                    `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
-                );
-            }
-
-            if(!contenedor.innerText.trim()){
-                throw new Error("El plan alimentario no contiene texto para exportar.");
-            }
-
-            const blob = await html2pdf()
-                .set({
+            const blob = await crearPDFDesdeElementoSeguro(
+                contenedor,
+                {
                     margin:[10, 12, 14, 12],
                     filename:"plan-alimentario.pdf",
                     image:{ type:"jpeg", quality:0.98 },
@@ -1966,20 +1962,31 @@
                     },
                     jsPDF:{ unit:"mm", format:"a4", orientation:"portrait" },
                     pagebreak:{ mode:["css", "legacy"] }
-                })
-                .from(contenedor)
-                .outputPdf("blob");
+                }
+            );
 
             const nombre = crearNombrePDFPlan(plan);
             const archivo = new File([blob], nombre, { type:"application/pdf" });
+            const guardarEnFicha = confirm(
+                "¿Querés guardar además una copia en Archivos y estudios del paciente?\n\n" +
+                "La descarga o el envío del PDF se harán por separado."
+            );
 
-            if(permitirGuardar && !estado.vistaPrevia){
-                const confirmarGuardado = confirm(
-                    "¿Querés guardar una copia de este PDF en Archivos y estudios del paciente?\n\n" +
-                    "Esta acción agregará un archivo nuevo, sin reemplazar información existente."
+            if(typeof compartirPDFIndicaciones === "function"){
+                await compartirPDFIndicaciones(
+                    archivo,
+                    nombre,
+                    {
+                        textoCompartir:
+                            `Plan alimentario para ${estado.pacienteNombre}`
+                    }
                 );
+            }else{
+                descargarBlobComoArchivo(blob, nombre);
+            }
 
-                if(confirmarGuardado){
+            if(guardarEnFicha){
+                try{
                     await Database.subirArchivo(
                         estado.pacienteId,
                         archivo,
@@ -1989,17 +1996,25 @@
                     if(typeof cargarArchivosPaciente === "function"){
                         await cargarArchivosPaciente(estado.pacienteId);
                     }
+
+                    alert("La copia del PDF quedó guardada en la ficha del paciente.");
+                }catch(error){
+                    console.error(
+                        "El PDF se generó, pero no se pudo guardar en la ficha.",
+                        error
+                    );
+                    alert(
+                        "El PDF se generó correctamente, pero no se pudo guardar la copia en la ficha.\n\n" +
+                        "La información existente no fue modificada."
+                    );
                 }
             }
-
-            if(typeof compartirPDFIndicaciones === "function"){
-                await compartirPDFIndicaciones(archivo, nombre);
-            }else{
-                descargarBlobComoArchivo(blob, nombre);
-            }
         }catch(error){
-            console.error("No se pudo generar el PDF del plan alimentario.");
-            alert("No se pudo generar el PDF.");
+            console.error("No se pudo generar el PDF del plan alimentario.", error);
+            alert(
+                "No se pudo generar un PDF válido. Intentá nuevamente.\n\n" +
+                "No se descargó ni se guardó ningún archivo en la ficha."
+            );
         }finally{
             contenedor.remove();
         }
@@ -2038,7 +2053,6 @@
         guardarPlan,
         abrirSeguimiento,
         guardarSeguimiento,
-        exportarBorrador,
         exportarPlan
     };
 

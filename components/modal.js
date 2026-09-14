@@ -2097,7 +2097,12 @@ async function generarYCompartirIndicaciones(){
 
         await compartirPDFIndicaciones(
             archivo,
-            nombreArchivo
+            nombreArchivo,
+            {
+                mensajeDescarga:
+                    "El documento quedó guardado en la ficha y fue descargado.\n\n" +
+                    "Podés adjuntarlo desde WhatsApp Web, correo u otra aplicación."
+            }
         );
 
     }catch(error){
@@ -2208,18 +2213,6 @@ async function crearPDFIndicaciones({
             });
         });
 
-        const rect = contenedor.getBoundingClientRect();
-
-        if(rect.width === 0 || rect.height === 0){
-            throw new Error(
-                `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
-            );
-        }
-
-        if(!contenedor.innerText.trim()){
-            throw new Error("El documento PDF no contiene texto.");
-        }
-
         const opciones = {
             margin:[12, 14, 14, 14],
             filename:"indicaciones.pdf",
@@ -2239,10 +2232,10 @@ async function crearPDFIndicaciones({
             pagebreak:{ mode:["css", "legacy"] }
         };
 
-        return await html2pdf()
-            .set(opciones)
-            .from(contenedor)
-            .outputPdf("blob");
+        return await crearPDFDesdeElementoSeguro(
+            contenedor,
+            opciones
+        );
 
     }finally{
         contenedor.remove();
@@ -2281,7 +2274,11 @@ function crearNombreArchivoIndicaciones(titulo){
 }
 
 
-async function compartirPDFIndicaciones(archivo, nombreArchivo){
+async function compartirPDFIndicaciones(
+    archivo,
+    nombreArchivo,
+    opciones = {}
+){
 
     const puedeCompartir =
         typeof navigator.share === "function" &&
@@ -2294,11 +2291,13 @@ async function compartirPDFIndicaciones(archivo, nombreArchivo){
             await navigator.share({
                 files:[archivo],
                 title:nombreArchivo,
-                text:`Indicaciones para ${pacienteActual.nombreCompleto}`
+                text:
+                    opciones.textoCompartir ||
+                    `Indicaciones para ${pacienteActual.nombreCompleto}`
             });
-            return;
+            return "compartido";
         }catch(error){
-            if(error?.name === "AbortError") return;
+            if(error?.name === "AbortError") return "cancelado";
             console.error("No se pudo abrir el panel para compartir.");
         }
     }
@@ -2308,8 +2307,9 @@ async function compartirPDFIndicaciones(archivo, nombreArchivo){
         nombreArchivo
     );
 
-    alert(
-        "El documento quedó guardado en la ficha y fue descargado.\n\n" +
-        "Podés adjuntarlo desde WhatsApp Web, correo u otra aplicación."
-    );
+    if(opciones.mensajeDescarga){
+        alert(opciones.mensajeDescarga);
+    }
+
+    return "descargado";
 }

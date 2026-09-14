@@ -2843,6 +2843,203 @@ function imprimirConTitulo(printArea, titulo){
 }
 
 
+async function esperarContenidoPDF(elemento){
+
+    if(document.fonts?.ready){
+        try{
+            await document.fonts.ready;
+        }catch(error){
+            console.warn("No se pudo esperar la carga de tipografías para el PDF.");
+        }
+    }
+
+    await new Promise(resolve => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setTimeout(resolve, 80);
+            });
+        });
+    });
+
+    const rect = elemento.getBoundingClientRect();
+
+    if(rect.width < 1 || rect.height < 1){
+        throw new Error(
+            `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
+        );
+    }
+
+    if(!elemento.innerText.trim()){
+        throw new Error("El documento PDF no contiene texto.");
+    }
+
+    return rect;
+}
+
+
+function calcularEscalaSeguraPDF(rect, escalaDeseada){
+
+    const escala = Number.isFinite(Number(escalaDeseada))
+        ? Number(escalaDeseada)
+        : 1.5;
+
+    /*
+     * html2pdf crea un único canvas para todo el documento. En móviles y en
+     * documentos largos, superar el límite del navegador puede devolver un
+     * canvas completamente blanco sin lanzar un error. Estos topes mantienen
+     * la captura por debajo de ese límite y conservan buena definición.
+     */
+    const limiteLado = 12000;
+    const limitePixeles = 18000000;
+    const escalaPorAncho = limiteLado / rect.width;
+    const escalaPorAlto = limiteLado / rect.height;
+    const escalaPorArea = Math.sqrt(
+        limitePixeles / (rect.width * rect.height)
+    );
+
+    const escalaSegura = Math.min(
+        escala,
+        escalaPorAncho,
+        escalaPorAlto,
+        escalaPorArea
+    );
+
+    if(escalaSegura < 0.6){
+        throw new Error(
+            "El documento es demasiado extenso para generar un PDF confiable."
+        );
+    }
+
+    return Math.max(0.6, escalaSegura);
+}
+
+
+function canvasPDFTieneContenido(canvas){
+
+    if(!canvas || canvas.width < 1 || canvas.height < 1){
+        return false;
+    }
+
+    const contexto = canvas.getContext("2d", { willReadFrequently:true });
+
+    if(!contexto) return false;
+
+    const saltoX = Math.max(1, Math.floor(canvas.width / 220));
+    const saltoY = Math.max(1, Math.floor(canvas.height / 220));
+    let pixelesConContenido = 0;
+
+    for(let y = 0; y < canvas.height; y += saltoY){
+        for(let x = 0; x < canvas.width; x += saltoX){
+            const pixel = contexto.getImageData(x, y, 1, 1).data;
+
+            if(
+                pixel[3] > 0 &&
+                (pixel[0] < 247 || pixel[1] < 247 || pixel[2] < 247)
+            ){
+                pixelesConContenido += 1;
+
+                if(pixelesConContenido >= 24){
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+
+async function validarBlobPDF(blob){
+
+    if(!(blob instanceof Blob) || blob.size < 3000){
+        throw new Error("El archivo PDF generado está vacío o incompleto.");
+    }
+
+    const firma = await blob.slice(0, 5).text();
+
+    if(firma !== "%PDF-"){
+        throw new Error("El archivo generado no tiene un formato PDF válido.");
+    }
+}
+
+
+async function crearPDFDesdeElementoSeguro(elemento, opciones = {}){
+
+    if(typeof html2pdf !== "function"){
+        throw new Error("No se pudo iniciar el generador de PDF.");
+    }
+
+    if(!(elemento instanceof HTMLElement) || !elemento.isConnected){
+        throw new Error("El contenido del PDF no está disponible en pantalla.");
+    }
+
+    const rect = await esperarContenidoPDF(elemento);
+    const opcionesCanvas = opciones.html2canvas || {};
+    const escalaSegura = calcularEscalaSeguraPDF(
+        rect,
+        opcionesCanvas.scale
+    );
+    const escalaAlternativa = Math.max(
+        0.6,
+        Math.min(1, escalaSegura * 0.75)
+    );
+    const escalas = [escalaSegura, escalaAlternativa]
+        .filter((valor, indice, lista) =>
+            lista.findIndex(item => Math.abs(item - valor) < 0.01) === indice
+        );
+    let ultimoError = null;
+
+    for(const escala of escalas){
+        try{
+            const worker = html2pdf()
+                .set({
+                    ...opciones,
+                    html2canvas:{
+                        ...opcionesCanvas,
+                        scale:escala,
+                        backgroundColor:"#ffffff",
+                        useCORS:true,
+                        allowTaint:false,
+                        logging:false,
+                        scrollX:0,
+                        scrollY:0,
+                        windowWidth:
+                            opcionesCanvas.windowWidth ||
+                            Math.max(
+                                document.documentElement.clientWidth,
+                                Math.ceil(rect.right)
+                            )
+                    }
+                })
+                .from(elemento)
+                .toCanvas();
+
+            const canvas = await worker.get("canvas");
+
+            if(!canvasPDFTieneContenido(canvas)){
+                throw new Error("La captura del PDF quedó en blanco.");
+            }
+
+            const blob = await worker
+                .toPdf()
+                .outputPdf("blob");
+
+            await validarBlobPDF(blob);
+
+            return blob;
+        }catch(error){
+            ultimoError = error;
+            console.warn(
+                `Falló un intento de PDF con escala ${escala.toFixed(2)}.`,
+                error
+            );
+        }
+    }
+
+    throw ultimoError || new Error("No se pudo generar un PDF válido.");
+}
+
+
 async function descargarPDFMovil(printArea, nombreArchivo){
 
     if(typeof html2pdf === "undefined"){
@@ -2889,30 +3086,6 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
         });
 
-        const rect =
-            contenidoClonado.getBoundingClientRect();
-
-        if(
-            rect.width === 0 ||
-            rect.height === 0
-        ){
-
-            throw new Error(
-                `El contenido del PDF no tiene dimensiones: ${rect.width} × ${rect.height}`
-            );
-
-        }
-
-        if(
-            !contenidoClonado.innerText.trim()
-        ){
-
-            throw new Error(
-                "El contenido clonado no contiene texto."
-            );
-
-        }
-
         const opciones = {
 
             margin:[8, 8, 8, 8],
@@ -2951,14 +3124,19 @@ async function descargarPDFMovil(printArea, nombreArchivo){
 
         };
 
-        await html2pdf()
-            .set(opciones)
-            .from(contenidoClonado)
-            .save();
+        const blob = await crearPDFDesdeElementoSeguro(
+            contenidoClonado,
+            opciones
+        );
+
+        descargarBlobComoArchivo(
+            blob,
+            nombreArchivo
+        );
 
     }catch(error){
 
-        console.error("No se pudo generar el PDF móvil.");
+        console.error("No se pudo generar el PDF móvil.", error);
 
         alert(
             "No se pudo generar el PDF. Intentá nuevamente."

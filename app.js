@@ -2963,6 +2963,191 @@ async function validarBlobPDF(blob){
 }
 
 
+function medirContenidoParaPaginasPDF(contenedor, pageSize, reglas = {}){
+
+    const base = contenedor.getBoundingClientRect();
+    const altoPagina = base.width * pageSize.inner.ratio;
+    const lineas = [];
+    const protegidos = [];
+    const saltos = [];
+    const recorrido = document.createTreeWalker(contenedor, NodeFilter.SHOW_TEXT);
+    const rango = document.createRange();
+    let nodo;
+
+    while((nodo = recorrido.nextNode())){
+        if(!nodo.textContent.trim()) continue;
+        rango.selectNodeContents(nodo);
+        const bloqueTexto = rango.getBoundingClientRect();
+
+        // Mantener juntas las líneas de un párrafo corto o de un texto
+        // delimitado por <br>. Los textos mayores que una página sí fluyen.
+        if(bloqueTexto.width > 0 && bloqueTexto.height < altoPagina - 4){
+            protegidos.push({
+                inicio:Math.max(0, bloqueTexto.top - base.top),
+                fin:bloqueTexto.bottom - base.top
+            });
+        }
+
+        for(const rect of rango.getClientRects()){
+            if(rect.width > 0 && rect.height > 0){
+                lineas.push({
+                    inicio:Math.max(0, rect.top - base.top),
+                    fin:rect.bottom - base.top
+                });
+            }
+        }
+    }
+
+    rango.detach();
+    lineas.sort((a, b) => a.inicio - b.inicio);
+    protegidos.push(...lineas);
+
+    const modos = [].concat(reglas.mode || ["css", "legacy"]);
+    const seleccionados = clave => {
+        const selectores = [].concat(reglas[clave] || []).filter(Boolean);
+        return new Set(selectores.length
+            ? contenedor.querySelectorAll(selectores.join(","))
+            : []);
+    };
+    const antes = seleccionados("before");
+    const despues = seleccionados("after");
+    const evitar = seleccionados("avoid");
+    const saltoForzado = valor => ["always", "page", "left", "right"].includes(valor);
+
+    for(const elemento of contenedor.querySelectorAll("*")){
+        const rect = elemento.getBoundingClientRect();
+        if(rect.width < 1 || rect.height < 1) continue;
+
+        const estilo = getComputedStyle(elemento);
+        const inicio = Math.max(0, rect.top - base.top);
+        const fin = rect.bottom - base.top;
+        const css = modos.includes("css");
+        const indivisible =
+            modos.includes("avoid-all") || evitar.has(elemento) ||
+            (css && ["avoid", "avoid-page"].includes(
+                estilo.breakInside || estilo.pageBreakInside
+            )) || elemento.matches("img, canvas, svg, tr, h1, h2, h3, h4, h5, h6");
+
+        if(indivisible && rect.height < altoPagina - 4){
+            protegidos.push({ inicio, fin });
+        }
+
+        // Un título no debe quedar separado de la primera línea que presenta.
+        if(elemento.matches("h1, h2, h3, h4, h5, h6")){
+            const siguiente = lineas.find(linea => linea.inicio >= fin - 1);
+            if(siguiente && siguiente.fin - inicio < altoPagina / 2){
+                protegidos.push({ inicio, fin:siguiente.fin });
+            }
+        }
+
+        if(antes.has(elemento) || (css && saltoForzado(estilo.breakBefore || estilo.pageBreakBefore))){
+            saltos.push(inicio);
+        }
+
+        if(despues.has(elemento) || (css && saltoForzado(estilo.breakAfter || estilo.pageBreakAfter)) ||
+            (modos.includes("legacy") && elemento.classList.contains("html2pdf__page-break"))){
+            saltos.push(fin);
+        }
+    }
+
+    return { ancho:base.width, protegidos, saltos:saltos.sort((a, b) => a - b) };
+}
+
+
+function calcularCortesPaginasPDF(canvas, medidas, pageSize){
+
+    const escala = canvas.width / medidas.ancho;
+    const altoPagina = Math.floor(canvas.width * pageSize.inner.ratio);
+    const protegidos = medidas.protegidos.map(bloque => ({
+        inicio:Math.floor(bloque.inicio * escala),
+        fin:Math.ceil(bloque.fin * escala)
+    }));
+    const saltos = medidas.saltos.map(valor => Math.floor(valor * escala));
+    const paginas = [];
+    let inicio = 0;
+    let indiceSalto = 0;
+
+    while(inicio < canvas.height){
+        let fin = Math.min(inicio + altoPagina, canvas.height);
+        while(indiceSalto < saltos.length && saltos[indiceSalto] <= inicio + 2){
+            indiceSalto += 1;
+        }
+        if(indiceSalto < saltos.length && saltos[indiceSalto] <= fin){
+            fin = saltos[indiceSalto];
+            // Consumir el salto aunque se ajuste unos píxeles para proteger
+            // la línea: no volver a generar una página de sólo ese espacio.
+            indiceSalto += 1;
+        }
+
+        // Retroceder al comienzo de una línea/bloque, nunca cortar sus píxeles.
+        while(fin < canvas.height){
+            const cruces = protegidos.filter(bloque =>
+                bloque.inicio > inicio + 2 && bloque.inicio < fin && bloque.fin > fin
+            );
+            if(!cruces.length) break;
+            fin = Math.min(...cruces.map(bloque => bloque.inicio));
+        }
+
+        if(fin <= inicio){
+            throw new Error("No se pudo encontrar un salto de página seguro.");
+        }
+
+        paginas.push({ inicio, fin });
+        inicio = fin;
+    }
+
+    return paginas;
+}
+
+
+async function crearPDFConPaginasSeguras(canvas, medidas, opciones, pageSize){
+
+    const paginas = calcularCortesPaginasPDF(canvas, medidas, pageSize);
+    const paginaCanvas = document.createElement("canvas");
+    paginaCanvas.width = canvas.width;
+    const imagen = opciones.image || { type:"jpeg", quality:0.95 };
+    let pdf = null;
+    let margenes = null;
+
+    try{
+        for(const [indice, pagina] of paginas.entries()){
+            paginaCanvas.height = pagina.fin - pagina.inicio;
+            const contexto = paginaCanvas.getContext("2d");
+            contexto.fillStyle = "#ffffff";
+            contexto.fillRect(0, 0, paginaCanvas.width, paginaCanvas.height);
+            contexto.drawImage(
+                canvas,
+                0, pagina.inicio, canvas.width, paginaCanvas.height,
+                0, 0, canvas.width, paginaCanvas.height
+            );
+
+            if(indice === 0){
+                const worker = html2pdf()
+                    .set({ ...opciones, enableLinks:false, pagebreak:{ mode:[] } })
+                    .from(paginaCanvas, "canvas")
+                    .toPdf();
+                pdf = await worker.get("pdf");
+                margenes = await worker.get("margin");
+            }else{
+                pdf.addPage();
+                pdf.addImage(
+                    paginaCanvas.toDataURL(`image/${imagen.type}`, imagen.quality),
+                    imagen.type,
+                    margenes[1], margenes[0],
+                    pageSize.inner.width,
+                    paginaCanvas.height * pageSize.inner.width / canvas.width
+                );
+            }
+        }
+
+        return pdf.output("blob");
+    }finally{
+        paginaCanvas.width = 0;
+        paginaCanvas.height = 0;
+    }
+}
+
+
 async function crearPDFDesdeElementoSeguro(elemento, opciones = {}){
 
     if(typeof html2pdf !== "function"){
@@ -2990,10 +3175,14 @@ async function crearPDFDesdeElementoSeguro(elemento, opciones = {}){
     let ultimoError = null;
 
     for(const escala of escalas){
+        let overlay = null;
         try{
             const worker = html2pdf()
                 .set({
                     ...opciones,
+                    // La paginación se resuelve por líneas medidas en el clon,
+                    // no mediante rellenos y cortes de imagen a alturas fijas.
+                    pagebreak:{ mode:[], before:[], after:[], avoid:[] },
                     html2canvas:{
                         ...opcionesCanvas,
                         scale:escala,
@@ -3012,17 +3201,29 @@ async function crearPDFDesdeElementoSeguro(elemento, opciones = {}){
                     }
                 })
                 .from(elemento)
-                .toCanvas();
+                .toContainer();
 
-            const canvas = await worker.get("canvas");
+            const contenedor = await worker.get("container");
+            overlay = await worker.get("overlay");
+            const pageSize = await worker.get("pageSize");
+            const medidas = medirContenidoParaPaginasPDF(
+                contenedor,
+                pageSize,
+                opciones.pagebreak
+            );
+
+            const canvas = await worker.toCanvas().get("canvas");
 
             if(!canvasPDFTieneContenido(canvas)){
                 throw new Error("La captura del PDF quedó en blanco.");
             }
 
-            const blob = await worker
-                .toPdf()
-                .outputPdf("blob");
+            const blob = await crearPDFConPaginasSeguras(
+                canvas,
+                medidas,
+                opciones,
+                pageSize
+            );
 
             await validarBlobPDF(blob);
 
@@ -3033,6 +3234,8 @@ async function crearPDFDesdeElementoSeguro(elemento, opciones = {}){
                 `Falló un intento de PDF con escala ${escala.toFixed(2)}.`,
                 error
             );
+        }finally{
+            if(overlay?.isConnected) overlay.remove();
         }
     }
 

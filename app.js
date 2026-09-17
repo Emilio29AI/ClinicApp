@@ -2979,9 +2979,9 @@ function medirContenidoParaPaginasPDF(contenedor, pageSize, reglas = {}){
         rango.selectNodeContents(nodo);
         const bloqueTexto = rango.getBoundingClientRect();
 
-        // Mantener juntas las líneas de un párrafo corto o de un texto
-        // delimitado por <br>. Los textos mayores que una página sí fluyen.
-        if(bloqueTexto.width > 0 && bloqueTexto.height < altoPagina - 4){
+        // Sólo agrupar textos breves. Un párrafo largo debe aprovechar el
+        // espacio restante aunque quepa completo en una página nueva.
+        if(bloqueTexto.width > 0 && bloqueTexto.height <= 72){
             protegidos.push({
                 inicio:Math.max(0, bloqueTexto.top - base.top),
                 fin:bloqueTexto.bottom - base.top
@@ -3028,12 +3028,14 @@ function medirContenidoParaPaginasPDF(contenedor, pageSize, reglas = {}){
                 estilo.breakInside || estilo.pageBreakInside
             )) || elemento.matches("img, canvas, svg, tr, h1, h2, h3, h4, h5, h6");
 
-        if(indivisible && rect.height < altoPagina - 4){
+        const objetoAtomico = elemento.matches("img, canvas, svg, tr, h1, h2, h3, h4, h5, h6");
+        const limiteBloque = objetoAtomico ? altoPagina - 4 : altoPagina * 0.15;
+        if(indivisible && rect.height < limiteBloque){
             protegidos.push({ inicio, fin });
         }
 
         // Un título no debe quedar separado de la primera línea que presenta.
-        if(elemento.matches("h1, h2, h3, h4, h5, h6")){
+        if(elemento.matches("h1, h2, h3, h4, h5, h6, .nutrition-plan-pdf-section article > strong")){
             const siguiente = lineas.find(linea => linea.inicio >= fin - 1);
             if(siguiente && siguiente.fin - inicio < altoPagina / 2){
                 protegidos.push({ inicio, fin:siguiente.fin });

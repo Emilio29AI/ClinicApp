@@ -1,4 +1,4 @@
-const CACHE_VERSION = "clinicapp-v11.5-planes-compartir-eliminar";
+const CACHE_VERSION = "clinicapp-v11.6-pdf-texto-ajustado";
 
 const APP_SHELL = [
     "./",

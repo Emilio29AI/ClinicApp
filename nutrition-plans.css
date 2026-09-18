@@ -946,6 +946,8 @@
     color:#253f4e;
     background:#fff;
     font-family:Arial, Helvetica, sans-serif;
+    /* URLs o textos sin espacios también deben caber dentro de la página. */
+    overflow-wrap:break-word;
 }
 
 .nutrition-plan-pdf-header{
@@ -957,6 +959,7 @@
 }
 
 .nutrition-plan-pdf-header > div{
+    min-width:0;
     display:flex;
     flex-direction:column;
     gap:3px;

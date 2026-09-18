@@ -3,8 +3,8 @@
 // ======================================
 //
 // Este modulo usa tablas propias y no escribe en pacientes, consultas ni
-// archivos salvo cuando el profesional confirma expresamente que desea
-// guardar un PDF en la ficha. Si las tablas nuevas todavia no existen, se
+// archivos salvo al compartir un PDF, cuya copia se adjunta a la ficha.
+// Si las tablas nuevas todavia no existen, se
 // activa un modo de vista previa sin persistencia.
 
 (function iniciarModuloPlanesAlimentarios(){
@@ -72,6 +72,7 @@
     };
 
     let exportandoPDF = false;
+    let eliminandoPlan = false;
 
     const DatosPlanesAlimentarios = {
 
@@ -281,6 +282,28 @@
             const { data, error } = await consulta.select().single();
             if(error) throw error;
             return data;
+        },
+
+        async eliminarPlan(id, pacienteId){
+            validarUUID(id, "plan alimentario");
+            const user = await obtenerUsuarioAutenticado();
+            await asegurarPacientePropio(pacienteId, user);
+
+            // Un único DELETE; la FK existente elimina sus controles en la
+            // misma transacción. No tocar pacientes, archivos u otras versiones.
+            const { data, error } = await supabaseClient
+                .from("planes_alimentarios")
+                .delete()
+                .eq("id", id)
+                .eq("paciente_id", pacienteId)
+                .eq("medico_id", user.id)
+                .select("id")
+                .single();
+
+            if(error) throw error;
+            if(data?.id !== id){
+                throw new Error("El plan no existe o no tenés permiso para eliminarlo.");
+            }
         },
 
         async guardarSeguimiento(datos){
@@ -661,6 +684,10 @@
                     + Nuevo plan
                 </button>
             </div>
+            <p class="nutrition-sharing-note">
+                Los PDF compartidos también quedan adjuntos a la ficha del paciente.
+            </p>
+            <p id="nutritionPlansMessage" class="nutrition-action-message" role="status" aria-live="polite" hidden></p>
             <div class="nutrition-plan-grid">${tarjetas}</div>
         `;
     }
@@ -726,8 +753,11 @@
                     <button type="button" onclick="NutritionPlansUI.abrirSeguimiento('${plan.id}')">
                         Registrar control
                     </button>
-                    <button type="button" onclick="NutritionPlansUI.exportarPlan('${plan.id}')">
-                        PDF
+                    <button type="button" onclick="NutritionPlansUI.exportarPlan('${plan.id}')" ${exportandoPDF || eliminandoPlan ? "disabled" : ""}>
+                        Compartir PDF
+                    </button>
+                    <button type="button" class="is-danger" onclick="NutritionPlansUI.eliminarPlan('${plan.id}')" ${exportandoPDF || eliminandoPlan ? "disabled" : ""}>
+                        Eliminar
                     </button>
                 </div>
             </article>
@@ -1855,8 +1885,60 @@
         return false;
     }
 
+    function mostrarMensajePlanes(texto, esError = false, pacienteId = estado.pacienteId){
+        if(estado.pacienteId !== pacienteId) return;
+        const mensaje = document.getElementById("nutritionPlansMessage");
+        if(!mensaje) return;
+        mensaje.textContent = texto;
+        mensaje.classList.toggle("is-error", esError);
+        mensaje.hidden = !texto;
+    }
+
+    function actualizarBotonesPlanesOcupados(){
+        document.querySelectorAll(
+            '.nutrition-card-actions button[onclick*="exportarPlan"], ' +
+            '.nutrition-card-actions button[onclick*="eliminarPlan"]'
+        ).forEach(boton => {
+            boton.disabled = exportandoPDF || eliminandoPlan;
+        });
+    }
+
+    async function eliminarPlan(id){
+        if(eliminandoPlan || exportandoPDF || estado.vistaPrevia) return;
+        const plan = estado.planes.find(item => item.id === id);
+        if(!plan) return;
+        const pacienteId = estado.pacienteId;
+
+        if(!confirm(
+            `¿Eliminar definitivamente el plan "${plan.titulo}"?\n\n` +
+            "Se borrará de la base de datos junto con todos sus controles de seguimiento. " +
+            "Esta acción no se puede deshacer.\n\n" +
+            "Las demás versiones y los PDF adjuntos a la ficha se conservarán."
+        )) return;
+
+        try{
+            eliminandoPlan = true;
+            actualizarBotonesPlanesOcupados();
+            mostrarMensajePlanes("Eliminando plan…", false, pacienteId);
+            await DatosPlanesAlimentarios.eliminarPlan(id, pacienteId);
+
+            if(estado.pacienteId === pacienteId){
+                estado.planes = estado.planes.filter(item => item.id !== id);
+                estado.seguimientos = estado.seguimientos.filter(item => item.plan_id !== id);
+                renderizar();
+                mostrarMensajePlanes("Plan eliminado.", false, pacienteId);
+            }
+        }catch(error){
+            console.error("No se pudo eliminar el plan alimentario.");
+            mostrarMensajePlanes("No se pudo eliminar el plan. Intentá nuevamente.", true, pacienteId);
+        }finally{
+            eliminandoPlan = false;
+            actualizarBotonesPlanesOcupados();
+        }
+    }
+
     async function exportarPlan(id){
-        if(exportandoPDF) return;
+        if(exportandoPDF || eliminandoPlan) return;
 
         const plan = estado.planes.find(item => item.id === id);
 
@@ -1865,27 +1947,24 @@
             return;
         }
 
-        const botonesPDF = document.querySelectorAll(
-            '.nutrition-card-actions button[onclick*="exportarPlan"]'
-        );
-
         try{
             exportandoPDF = true;
-            botonesPDF.forEach(boton => {
-                boton.disabled = true;
-            });
+            actualizarBotonesPlanesOcupados();
+            mostrarMensajePlanes("Preparando PDF…");
             await generarPDFPlan(plan);
         }finally{
             exportandoPDF = false;
-            botonesPDF.forEach(boton => {
-                boton.disabled = false;
-            });
+            actualizarBotonesPlanesOcupados();
         }
     }
 
     async function generarPDFPlan(plan){
+        // Conservar el destinatario original aunque se cierre el módulo o se
+        // seleccione otro paciente mientras se genera/comparte el documento.
+        const pacienteId = estado.pacienteId;
+        const pacienteNombre = estado.pacienteNombre;
         if(typeof html2pdf !== "function"){
-            alert("No se pudo iniciar el generador de PDF.");
+            mostrarMensajePlanes("No se pudo iniciar el generador de PDF.", true, pacienteId);
             return;
         }
 
@@ -1895,7 +1974,7 @@
         );
 
         if(!seccionesConDatos.length){
-            alert("El plan no tiene contenido para exportar.");
+            mostrarMensajePlanes("El plan no tiene contenido para exportar.", true, pacienteId);
             return;
         }
 
@@ -1921,7 +2000,7 @@
             </header>
             <section class="nutrition-plan-pdf-patient">
                 <span>Paciente</span>
-                <h1>${escapar(estado.pacienteNombre)}</h1>
+                <h1>${escapar(pacienteNombre)}</h1>
                 <h2>${escapar(plan.titulo || "Plan alimentario")}</h2>
                 ${plan.objetivo ? `<p><strong>Objetivo:</strong> ${escapar(plan.objetivo)}</p>` : ""}
             </section>
@@ -1965,63 +2044,62 @@
                 }
             );
 
-            const nombre = crearNombrePDFPlan(plan);
+            const nombre = crearNombrePDFPlan(plan, pacienteNombre);
             const archivo = new File([blob], nombre, { type:"application/pdf" });
-            const guardarEnFicha = confirm(
-                "¿Querés guardar además una copia en Archivos y estudios del paciente?\n\n" +
-                "La descarga o el envío del PDF se harán por separado."
-            );
-
-            if(typeof compartirPDFIndicaciones === "function"){
-                await compartirPDFIndicaciones(
-                    archivo,
-                    nombre,
-                    {
-                        textoCompartir:
-                            `Plan alimentario para ${estado.pacienteNombre}`
-                    }
-                );
-            }else{
-                descargarBlobComoArchivo(blob, nombre);
+            let errorCompartir = false;
+            try{
+                if(typeof compartirPDFIndicaciones === "function"){
+                    await compartirPDFIndicaciones(archivo, nombre, {
+                        textoCompartir:`Plan alimentario para ${pacienteNombre}`
+                    });
+                }else{
+                    descargarBlobComoArchivo(blob, nombre);
+                }
+            }catch(error){
+                errorCompartir = true;
+                console.error("No se pudo compartir el PDF del plan.");
             }
 
-            if(guardarEnFicha){
+            // Adjuntar también si se cancela el panel de compartir: el PDF ya
+            // fue exportado. Un fallo del envío no debe impedir guardar la copia.
+            try{
+                await Database.subirArchivo(pacienteId, archivo, `Plan alimentario · ${plan.titulo}`);
+                mostrarMensajePlanes(
+                    errorCompartir
+                        ? "PDF adjunto a la ficha, pero no se pudo compartir. Podés descargarlo desde Archivos y estudios."
+                        : "PDF adjunto a la ficha del paciente.",
+                    errorCompartir,
+                    pacienteId
+                );
+            }catch(error){
+                console.error("No se pudo adjuntar el PDF del plan a la ficha.");
+                mostrarMensajePlanes(
+                    errorCompartir
+                        ? "No se pudo compartir ni adjuntar el PDF. Intentá nuevamente."
+                        : "PDF generado, pero no se pudo adjuntar a la ficha. Intentá nuevamente.",
+                    true,
+                    pacienteId
+                );
+                return;
+            }
+
+            if(pacienteActual?.id === pacienteId && typeof cargarArchivosPaciente === "function"){
                 try{
-                    await Database.subirArchivo(
-                        estado.pacienteId,
-                        archivo,
-                        `Plan alimentario · ${plan.titulo}`
-                    );
-
-                    if(typeof cargarArchivosPaciente === "function"){
-                        await cargarArchivosPaciente(estado.pacienteId);
-                    }
-
-                    alert("La copia del PDF quedó guardada en la ficha del paciente.");
+                    await cargarArchivosPaciente(pacienteId);
                 }catch(error){
-                    console.error(
-                        "El PDF se generó, pero no se pudo guardar en la ficha.",
-                        error
-                    );
-                    alert(
-                        "El PDF se generó correctamente, pero no se pudo guardar la copia en la ficha.\n\n" +
-                        "La información existente no fue modificada."
-                    );
+                    console.error("No se pudo actualizar la lista de archivos adjuntos.");
                 }
             }
         }catch(error){
             console.error("No se pudo generar el PDF del plan alimentario.", error);
-            alert(
-                "No se pudo generar un PDF válido. Intentá nuevamente.\n\n" +
-                "No se descargó ni se guardó ningún archivo en la ficha."
-            );
+            mostrarMensajePlanes("No se pudo generar un PDF válido. Intentá nuevamente.", true, pacienteId);
         }finally{
             contenedor.remove();
         }
     }
 
-    function crearNombrePDFPlan(plan){
-        const paciente = estado.pacienteNombre
+    function crearNombrePDFPlan(plan, pacienteNombre = estado.pacienteNombre){
+        const paciente = pacienteNombre
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "")
             .replace(/[^a-zA-Z0-9]+/g, "-")
@@ -2053,7 +2131,8 @@
         guardarPlan,
         abrirSeguimiento,
         guardarSeguimiento,
-        exportarPlan
+        exportarPlan,
+        eliminarPlan
     };
 
     window.abrirModuloPlanesAlimentarios = abrir;

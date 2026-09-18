@@ -206,6 +206,39 @@
     gap:16px;
 }
 
+.nutrition-sharing-note{
+    margin:0 0 12px;
+    color:#6a7f8b;
+    font-size:.78rem;
+    line-height:1.45;
+}
+
+.nutrition-action-message{
+    margin:0 0 12px;
+    color:#397762;
+    font-size:.82rem;
+    line-height:1.45;
+}
+
+.nutrition-action-message.is-error{
+    color:#a34444;
+}
+
+.nutrition-card-actions button.is-danger{
+    color:#a34444;
+    border-color:#e3caca;
+}
+
+.nutrition-card-actions button.is-danger:hover{
+    background:#fff3f3;
+    border-color:#cfaaaa;
+}
+
+.nutrition-card-actions button:disabled{
+    opacity:.55;
+    cursor:wait;
+}
+
 .nutrition-empty-state{
     grid-column:1 / -1;
     padding:58px 24px;

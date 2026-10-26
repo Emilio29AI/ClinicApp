@@ -1,9 +1,9 @@
 // ======================================
-// PLANES ALIMENTARIOS Y SEGUIMIENTO
+// PLANES ALIMENTARIOS
 // ======================================
 //
 // Este modulo usa tablas propias y no escribe en pacientes, consultas ni
-// archivos salvo al compartir un PDF, cuya copia se adjunta a la ficha.
+// archivos salvo al guardar un plan, cuya copia PDF se adjunta a la ficha.
 // Si las tablas nuevas todavia no existen, se
 // activa un modo de vista previa sin persistencia.
 
@@ -19,17 +19,6 @@
         { clave:"cena", etiqueta:"Cena" },
         { clave:"colacion", etiqueta:"Colaciones" },
         { clave:"recomendacion", etiqueta:"Recomendaciones" }
-    ];
-
-    const DIFICULTADES = [
-        "Falta de tiempo",
-        "Hambre o saciedad insuficiente",
-        "Costo de los alimentos",
-        "No consigue algunos alimentos",
-        "No le gustan algunas opciones",
-        "Comidas fuera de casa",
-        "Organización familiar",
-        "Horarios variables"
     ];
 
     const OPCIONES_VISTA_PREVIA = CATEGORIAS.map((categoria, indice) => ({
@@ -66,7 +55,6 @@
         seguimientos:[],
         pesoReciente:null,
         borrador:null,
-        planSeguimiento:null,
         opcionEditando:null,
         cargando:false
     };
@@ -304,34 +292,6 @@
             if(data?.id !== id){
                 throw new Error("El plan no existe o no tenés permiso para eliminarlo.");
             }
-        },
-
-        async guardarSeguimiento(datos){
-            const user = await obtenerUsuarioAutenticado();
-            await asegurarPacientePropio(datos.paciente_id, user);
-            validarUUID(datos.plan_id, "plan alimentario");
-
-            const { data, error } = await supabaseClient
-                .from("seguimientos_alimentarios")
-                .insert({
-                    medico_id:user.id,
-                    paciente_id:datos.paciente_id,
-                    plan_id:datos.plan_id,
-                    fecha:datos.fecha,
-                    adherencia:Number(datos.adherencia),
-                    peso:numeroOpcional(datos.peso),
-                    cintura:numeroOpcional(datos.cintura),
-                    dificultades:datos.dificultades || [],
-                    resultado:datos.resultado || null,
-                    observaciones:datos.observaciones || null,
-                    decision:datos.decision,
-                    proxima_revision:datos.proxima_revision || null
-                })
-                .select()
-                .single();
-
-            if(error) throw error;
-            return data;
         }
     };
 
@@ -533,7 +493,6 @@
     function cerrar(){
         document.getElementById("nutritionPlansOverlay")?.remove();
         estado.borrador = null;
-        estado.planSeguimiento = null;
         estado.opcionEditando = null;
     }
 
@@ -607,11 +566,6 @@
             return;
         }
 
-        if(estado.pantalla === "seguimiento"){
-            contenedor.innerHTML = renderizarFormularioSeguimiento();
-            return;
-        }
-
         contenedor.innerHTML = `
             ${renderizarAvisoVistaPrevia()}
             <nav class="nutrition-tabs" aria-label="Secciones del módulo">
@@ -675,7 +629,7 @@
             <div class="nutrition-view-toolbar">
                 <div>
                     <h3>Planes y resultados</h3>
-                    <p>Versiones, próximas revisiones y controles de adherencia.</p>
+                    <p>Planes guardados y próximas revisiones.</p>
                 </div>
                 <button
                     class="action-button"
@@ -685,7 +639,7 @@
                 </button>
             </div>
             <p class="nutrition-sharing-note">
-                Los PDF compartidos también quedan adjuntos a la ficha del paciente.
+                Al guardar un plan, su PDF queda adjunto a la ficha del paciente.
             </p>
             <p id="nutritionPlansMessage" class="nutrition-action-message" role="status" aria-live="polite" hidden></p>
             <div class="nutrition-plan-grid">${tarjetas}</div>
@@ -746,12 +700,6 @@
                 <div class="nutrition-card-actions">
                     <button type="button" onclick="NutritionPlansUI.editarPlan('${plan.id}')">
                         Editar
-                    </button>
-                    <button type="button" onclick="NutritionPlansUI.duplicarPlan('${plan.id}')">
-                        Nueva versión
-                    </button>
-                    <button type="button" onclick="NutritionPlansUI.abrirSeguimiento('${plan.id}')">
-                        Registrar control
                     </button>
                     <button type="button" onclick="NutritionPlansUI.exportarPlan('${plan.id}')" ${exportandoPDF || eliminandoPlan ? "disabled" : ""}>
                         Compartir PDF
@@ -1110,28 +1058,8 @@
         renderizar();
     }
 
-    function duplicarPlan(id){
-        const plan = estado.planes.find(item => item.id === id);
-        if(!plan) return;
-
-        estado.borrador = {
-            ...clonar(plan),
-            id:null,
-            serie_id:plan.serie_id || crypto.randomUUID(),
-            numero_version:(Number(plan.numero_version) || 1) + 1,
-            estado:"borrador",
-            fecha_inicio:obtenerFechaHoy(),
-            fecha_revision:sumarDias(obtenerFechaHoy(), 30),
-            titulo:plan.titulo,
-            contenido:normalizarContenido(plan.contenido)
-        };
-        estado.pantalla = "editor";
-        renderizar();
-    }
-
     function volverAPlanes(){
         estado.borrador = null;
-        estado.planSeguimiento = null;
         estado.pantalla = "planes";
         renderizar();
     }
@@ -1621,6 +1549,15 @@
             return;
         }
 
+        const pacienteId = estado.pacienteId;
+        const pacienteNombre = estado.pacienteNombre;
+        const overlay = document.getElementById("nutritionPlansOverlay");
+        const datosParaGuardar = {
+            ...plan,
+            titulo:plan.titulo.trim(),
+            objetivo:String(plan.objetivo || "").trim(),
+            contenido:normalizarContenido(plan.contenido)
+        };
         const boton = document.getElementById("nutritionSavePlanButton");
         if(boton){
             boton.disabled = true;
@@ -1628,261 +1565,81 @@
         }
 
         try{
-            const guardado = await DatosPlanesAlimentarios.guardarPlan({
-                ...plan,
-                titulo:plan.titulo.trim(),
-                objetivo:plan.objetivo.trim(),
-                contenido:normalizarContenido(plan.contenido)
-            }, plan.id || null);
+            // Validar el PDF antes de crear o actualizar el plan.
+            const archivo = await crearArchivoPDFPlan(datosParaGuardar, pacienteNombre);
+            const guardado = await DatosPlanesAlimentarios.guardarPlan(
+                datosParaGuardar, plan.id || null
+            );
 
-            if(guardarComoPlantilla){
-                await DatosPlanesAlimentarios.guardarPlantilla({
-                    nombre:nombrePlantilla,
-                    descripcion:`Creada desde ${plan.titulo.trim()}`,
-                    objetivo:plan.objetivo.trim(),
-                    contenido:normalizarContenido(plan.contenido)
-                });
+            let errorAdjunto = false;
+            try{
+                await Database.subirArchivo(
+                    pacienteId,
+                    archivo,
+                    `Plan alimentario · ${guardado.titulo}`
+                );
+            }catch(error){
+                errorAdjunto = true;
+                console.error("El plan se guardó, pero no se pudo adjuntar su PDF.");
             }
 
-            await recargarDatosReales();
-            estado.borrador = null;
-            estado.pantalla = "planes";
-            renderizar();
+            let errorPlantilla = false;
 
-            if(guardado?.estado === "activo"){
-                alert("El plan quedó activo y listo para iniciar el seguimiento.");
+            if(guardarComoPlantilla){
+                try{
+                    await DatosPlanesAlimentarios.guardarPlantilla({
+                        nombre:nombrePlantilla,
+                        descripcion:`Creada desde ${guardado.titulo}`,
+                        objetivo:datosParaGuardar.objetivo,
+                        contenido:datosParaGuardar.contenido
+                    });
+                }catch(error){
+                    errorPlantilla = true;
+                    console.error("El plan se guardó, pero no se pudo crear la plantilla.");
+                }
+            }
+
+            if(pacienteActual?.id === pacienteId && !errorAdjunto &&
+                typeof cargarArchivosPaciente === "function"){
+                try{
+                    await cargarArchivosPaciente(pacienteId);
+                }catch(error){
+                    console.error("No se pudo actualizar la lista de archivos del paciente.");
+                }
+            }
+
+            if(estado.pacienteId === pacienteId &&
+                document.getElementById("nutritionPlansOverlay") === overlay){
+                try{
+                    await recargarDatosReales();
+                }catch(error){
+                    console.error("No se pudo actualizar la lista de planes guardados.");
+                    const indice = estado.planes.findIndex(item => item.id === guardado.id);
+                    if(indice >= 0) estado.planes[indice] = guardado;
+                    else estado.planes.unshift(guardado);
+                }
+                if(estado.pacienteId !== pacienteId ||
+                    document.getElementById("nutritionPlansOverlay") !== overlay){
+                    return;
+                }
+                estado.borrador = null;
+                estado.pantalla = "planes";
+                renderizar();
+                const mensaje = errorAdjunto
+                    ? "El plan se guardó, pero no se pudo adjuntar el PDF. Abrí Editar y guardalo nuevamente para reintentar."
+                    : errorPlantilla
+                        ? "Plan y PDF guardados. No se pudo crear la plantilla."
+                        : "Plan y PDF guardados en la ficha del paciente.";
+                mostrarMensajePlanes(mensaje, errorAdjunto || errorPlantilla, pacienteId);
             }
         }catch(error){
             console.error("No se pudo guardar el plan alimentario.");
-            alert("No se pudo guardar el plan. No se modificaron los datos clínicos existentes.");
+            alert("No se pudo guardar el plan o generar un PDF válido. Intentá nuevamente.");
             if(boton){
                 boton.disabled = false;
                 boton.textContent = plan.id ? "Actualizar plan" : "Guardar plan";
             }
         }
-    }
-
-    function abrirSeguimiento(planId){
-        const plan = estado.planes.find(item => item.id === planId);
-        if(!plan) return;
-        estado.planSeguimiento = plan;
-        estado.pantalla = "seguimiento";
-        renderizar();
-    }
-
-    function renderizarFormularioSeguimiento(){
-        const plan = estado.planSeguimiento;
-        if(!plan) return "";
-
-        const seguimientos = seguimientosDelPlan(plan.id);
-        const ultimoPeso = seguimientos.find(
-            item => numeroOpcional(item.peso) !== null
-        )?.peso ?? "";
-
-        return `
-            ${renderizarAvisoVistaPrevia()}
-            <div class="nutrition-editor-header">
-                <button
-                    class="nutrition-back-button"
-                    type="button"
-                    onclick="NutritionPlansUI.volverAPlanes()">
-                    ← Volver
-                </button>
-                <div>
-                    <h3>Registrar seguimiento</h3>
-                    <p>${escapar(plan.titulo)} · versión ${plan.numero_version}</p>
-                </div>
-            </div>
-
-            <form
-                class="nutrition-followup-form"
-                onsubmit="return NutritionPlansUI.guardarSeguimiento(event)">
-
-                <section class="nutrition-followup-section">
-                    <div class="nutrition-section-heading">
-                        <div>
-                            <h3>Adherencia</h3>
-                            <p>¿En qué medida el paciente pudo sostener el plan?</p>
-                        </div>
-                    </div>
-
-                    <div class="nutrition-adherence-scale">
-                        ${[1, 2, 3, 4, 5].map(numero => `
-                            <label>
-                                <input
-                                    type="radio"
-                                    name="nutritionAdherence"
-                                    value="${numero}"
-                                    ${numero === 3 ? "checked" : ""}>
-                                <span>${numero}</span>
-                                <small>${numero === 1 ? "Muy baja" : numero === 5 ? "Muy alta" : ""}</small>
-                            </label>
-                        `).join("")}
-                    </div>
-                </section>
-
-                <section class="nutrition-followup-section">
-                    <div class="nutrition-form-grid">
-                        <label>
-                            Fecha del control
-                            <input
-                                id="nutritionFollowupDate"
-                                type="date"
-                                value="${obtenerFechaHoy()}">
-                        </label>
-                        <label>
-                            Peso actual (kg)
-                            <input
-                                id="nutritionFollowupWeight"
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                value="${escaparAtributoLocal(ultimoPeso)}"
-                                placeholder="Opcional">
-                        </label>
-                        <label>
-                            Cintura (cm)
-                            <input
-                                id="nutritionFollowupWaist"
-                                type="number"
-                                min="0"
-                                step="0.1"
-                                placeholder="Opcional">
-                        </label>
-                        <label>
-                            Próxima revisión
-                            <input
-                                id="nutritionFollowupNextReview"
-                                type="date"
-                                value="${escaparAtributoLocal(plan.fecha_revision || "")}">
-                        </label>
-                    </div>
-                </section>
-
-                <section class="nutrition-followup-section">
-                    <h3>Dificultades encontradas</h3>
-                    <div class="nutrition-difficulties">
-                        ${DIFICULTADES.map(dificultad => `
-                            <label>
-                                <input
-                                    type="checkbox"
-                                    name="nutritionDifficulty"
-                                    value="${escaparAtributoLocal(dificultad)}">
-                                <span>${escapar(dificultad)}</span>
-                            </label>
-                        `).join("")}
-                    </div>
-                </section>
-
-                <section class="nutrition-followup-section">
-                    <div class="nutrition-form-grid">
-                        <label class="is-full">
-                            Resultado observado
-                            <textarea
-                                id="nutritionFollowupResult"
-                                rows="3"
-                                placeholder="Cambios en hábitos, síntomas, energía o medidas"></textarea>
-                        </label>
-                        <label class="is-full">
-                            Observaciones profesionales
-                            <textarea
-                                id="nutritionFollowupNotes"
-                                rows="3"
-                                placeholder="Aspectos a reforzar o revisar"></textarea>
-                        </label>
-                        <label class="is-full">
-                            Decisión
-                            <select id="nutritionFollowupDecision">
-                                <option value="mantener">Mantener el plan</option>
-                                <option value="ajustar">Ajustar algunas opciones</option>
-                                <option value="nueva_version">Crear una nueva versión</option>
-                                <option value="finalizar">Finalizar seguimiento</option>
-                            </select>
-                        </label>
-                    </div>
-                </section>
-
-                <div class="nutrition-form-actions sticky">
-                    <button
-                        class="secondary-button"
-                        type="button"
-                        onclick="NutritionPlansUI.volverAPlanes()">
-                        Cancelar
-                    </button>
-                    <button
-                        class="action-button"
-                        type="submit"
-                        ${estado.vistaPrevia ? "disabled" : ""}>
-                        Guardar seguimiento
-                    </button>
-                </div>
-            </form>
-        `;
-    }
-
-    async function guardarSeguimiento(event){
-        event?.preventDefault();
-        if(estado.vistaPrevia) return false;
-
-        const plan = estado.planSeguimiento;
-        const fecha = document.getElementById("nutritionFollowupDate")?.value;
-        const adherencia = document.querySelector(
-            'input[name="nutritionAdherence"]:checked'
-        )?.value;
-
-        if(!plan || !fecha || !adherencia){
-            alert("Completá la fecha y el nivel de adherencia.");
-            return false;
-        }
-
-        const boton = event?.submitter;
-        if(boton){
-            boton.disabled = true;
-            boton.textContent = "Guardando...";
-        }
-
-        const decision =
-            document.getElementById("nutritionFollowupDecision").value;
-
-        try{
-            await DatosPlanesAlimentarios.guardarSeguimiento({
-                paciente_id:estado.pacienteId,
-                plan_id:plan.id,
-                fecha,
-                adherencia,
-                peso:document.getElementById("nutritionFollowupWeight").value,
-                cintura:document.getElementById("nutritionFollowupWaist").value,
-                dificultades:Array.from(document.querySelectorAll(
-                    'input[name="nutritionDifficulty"]:checked'
-                )).map(input => input.value),
-                resultado:document.getElementById("nutritionFollowupResult").value.trim(),
-                observaciones:document.getElementById("nutritionFollowupNotes").value.trim(),
-                decision,
-                proxima_revision:document.getElementById("nutritionFollowupNextReview").value
-            });
-
-            await recargarDatosReales();
-
-            if(["ajustar", "nueva_version"].includes(decision) &&
-                confirm("El seguimiento quedó guardado. ¿Querés preparar una nueva versión del plan ahora?")){
-                estado.planSeguimiento = null;
-                duplicarPlan(plan.id);
-                return false;
-            }
-
-            estado.planSeguimiento = null;
-            estado.pantalla = "planes";
-            renderizar();
-        }catch(error){
-            console.error("No se pudo guardar el seguimiento alimentario.");
-            alert("No se pudo guardar el seguimiento. No se modificó el plan existente.");
-            if(boton){
-                boton.disabled = false;
-                boton.textContent = "Guardar seguimiento";
-            }
-        }
-
-        return false;
     }
 
     function mostrarMensajePlanes(texto, esError = false, pacienteId = estado.pacienteId){
@@ -1958,14 +1715,9 @@
         }
     }
 
-    async function generarPDFPlan(plan){
-        // Conservar el destinatario original aunque se cierre el módulo o se
-        // seleccione otro paciente mientras se genera/comparte el documento.
-        const pacienteId = estado.pacienteId;
-        const pacienteNombre = estado.pacienteNombre;
+    async function crearArchivoPDFPlan(plan, pacienteNombre){
         if(typeof html2pdf !== "function"){
-            mostrarMensajePlanes("No se pudo iniciar el generador de PDF.", true, pacienteId);
-            return;
+            throw new Error("No se pudo iniciar el generador de PDF.");
         }
 
         const contenido = normalizarContenido(plan.contenido);
@@ -1974,8 +1726,7 @@
         );
 
         if(!seccionesConDatos.length){
-            mostrarMensajePlanes("El plan no tiene contenido para exportar.", true, pacienteId);
-            return;
+            throw new Error("El plan no tiene contenido para exportar.");
         }
 
         const perfil = perfilMedicoActual || {};
@@ -2044,57 +1795,40 @@
                 }
             );
 
-            const nombre = crearNombrePDFPlan(plan, pacienteNombre);
-            const archivo = new File([blob], nombre, { type:"application/pdf" });
-            let errorCompartir = false;
-            try{
-                if(typeof compartirPDFIndicaciones === "function"){
-                    await compartirPDFIndicaciones(archivo, nombre, {
-                        textoCompartir:`Plan alimentario para ${pacienteNombre}`
-                    });
-                }else{
-                    descargarBlobComoArchivo(blob, nombre);
-                }
-            }catch(error){
-                errorCompartir = true;
-                console.error("No se pudo compartir el PDF del plan.");
-            }
-
-            // Adjuntar también si se cancela el panel de compartir: el PDF ya
-            // fue exportado. Un fallo del envío no debe impedir guardar la copia.
-            try{
-                await Database.subirArchivo(pacienteId, archivo, `Plan alimentario · ${plan.titulo}`);
-                mostrarMensajePlanes(
-                    errorCompartir
-                        ? "PDF adjunto a la ficha, pero no se pudo compartir. Podés descargarlo desde Archivos y estudios."
-                        : "PDF adjunto a la ficha del paciente.",
-                    errorCompartir,
-                    pacienteId
-                );
-            }catch(error){
-                console.error("No se pudo adjuntar el PDF del plan a la ficha.");
-                mostrarMensajePlanes(
-                    errorCompartir
-                        ? "No se pudo compartir ni adjuntar el PDF. Intentá nuevamente."
-                        : "PDF generado, pero no se pudo adjuntar a la ficha. Intentá nuevamente.",
-                    true,
-                    pacienteId
-                );
-                return;
-            }
-
-            if(pacienteActual?.id === pacienteId && typeof cargarArchivosPaciente === "function"){
-                try{
-                    await cargarArchivosPaciente(pacienteId);
-                }catch(error){
-                    console.error("No se pudo actualizar la lista de archivos adjuntos.");
-                }
-            }
-        }catch(error){
-            console.error("No se pudo generar el PDF del plan alimentario.", error);
-            mostrarMensajePlanes("No se pudo generar un PDF válido. Intentá nuevamente.", true, pacienteId);
+            return new File([blob], crearNombrePDFPlan(plan, pacienteNombre), {
+                type:"application/pdf"
+            });
         }finally{
             contenedor.remove();
+        }
+    }
+
+    async function generarPDFPlan(plan){
+        const pacienteId = estado.pacienteId;
+        const pacienteNombre = estado.pacienteNombre;
+
+        try{
+            const archivo = await crearArchivoPDFPlan(plan, pacienteNombre);
+            let resultado;
+            if(typeof compartirPDFIndicaciones === "function"){
+                resultado = await compartirPDFIndicaciones(archivo, archivo.name, {
+                    textoCompartir:`Plan alimentario para ${pacienteNombre}`
+                });
+            }else{
+                descargarBlobComoArchivo(archivo, archivo.name);
+                resultado = "descargado";
+            }
+
+            mostrarMensajePlanes(
+                resultado === "cancelado"
+                    ? "Se canceló el envío. El PDF guardado sigue disponible en la ficha."
+                    : "PDF listo para compartir. Ya estaba adjunto a la ficha del paciente.",
+                false,
+                pacienteId
+            );
+        }catch(error){
+            console.error("No se pudo compartir el PDF del plan alimentario.");
+            mostrarMensajePlanes("No se pudo generar o compartir el PDF. Intentá nuevamente.", true, pacienteId);
         }
     }
 
@@ -2119,7 +1853,6 @@
         archivarPlantilla,
         nuevoPlan,
         editarPlan,
-        duplicarPlan,
         volverAPlanes,
         aplicarPlantilla,
         alternarOpcion,
@@ -2129,8 +1862,6 @@
         quitarItem,
         actualizarModalidadSeguimiento,
         guardarPlan,
-        abrirSeguimiento,
-        guardarSeguimiento,
         exportarPlan,
         eliminarPlan
     };
